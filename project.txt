@@ -1,0 +1,2120 @@
+# JOBTRACK — PERSONAL JOB APPLICATION TRACKER + JOB SHARING PLATFORM
+
+Build a complete web application called **JobTrack**.
+
+JobTrack is a personal job application tracker combined with a simple job-sharing system for friends.
+
+The application allows users to:
+
+* Save job opportunities
+* Track applications
+* Track exactly which resume was used
+* Manage multiple resume versions
+* Track assessments and interviews
+* Track follow-ups
+* Add and manage walk-in drives
+* Receive walk-in reminders
+* Send reminders to multiple email addresses
+* Share job links with Everyone, Friends, or Only Me
+* See jobs shared by other users
+* See friends' shared job links
+* Filter jobs by friend, company, role, location, source, etc.
+* Save a friend's job into their own private job tracker
+* Open the original job link and apply
+* Share walk-in drives
+* Save shared walk-ins into their own private walk-in list
+
+The application should be simple, clean, fast, mobile responsive, and easy to maintain.
+
+---
+
+# 1. VERY IMPORTANT ARCHITECTURE RULES
+
+This is NOT a public job portal.
+
+It is a personal job tracking application with optional job sharing.
+
+DO NOT use:
+
+* n8n
+* FastAPI
+* Express
+* Docker
+* Kubernetes
+* Microservices
+* AI APIs
+* LLM APIs
+
+Keep the architecture simple.
+
+---
+
+# 2. TECHNOLOGY STACK
+
+Use:
+
+* React
+* TypeScript
+* Vite
+* Tailwind CSS
+* React Router
+* Lucide React
+* Supabase
+* Supabase PostgreSQL
+* Supabase Auth
+* Supabase Storage
+* Supabase Edge Functions
+* Recharts only where useful
+* Resend or another simple transactional email API
+* Netlify or Vercel deployment
+
+Use Supabase directly from the React frontend for normal CRUD operations.
+
+Use Supabase Edge Functions only where server-side functionality is required, such as sending emails.
+
+Never expose secret API keys in frontend code.
+
+---
+
+# 3. APPLICATION NAVIGATION
+
+Create:
+
+* Dashboard
+* My Applications
+* Job Feed
+* My Walk-ins
+* Resumes
+* Analytics
+* Friends
+* Settings
+
+Mobile navigation should use a hamburger menu or suitable bottom navigation.
+
+---
+
+# 4. USER TYPES
+
+All registered users are normal JobTrack users.
+
+There is no complicated admin system for the MVP.
+
+Each user can:
+
+* Manage their own private jobs
+* Share jobs
+* See jobs shared with them
+* Add friends
+* See friends' shared jobs
+* Save shared jobs into their private tracker
+* Manage their own resumes
+* Manage their own applications
+* Manage their own walk-ins
+
+---
+
+# 5. AUTHENTICATION
+
+Use Supabase Auth.
+
+Support:
+
+* Sign up
+* Login
+* Logout
+* Session persistence
+* Password reset
+
+Profile should contain:
+
+* Name
+* Email
+* Profile photo optional
+
+---
+
+# 6. DASHBOARD
+
+Create a clean dashboard.
+
+Show summary cards:
+
+* Total Jobs
+* Applied
+* Assessments
+* Interviews
+* Offers
+* Rejected
+* Walk-ins
+* Follow-ups
+
+Quick actions:
+
+* Add Job
+
+* Add Walk-in
+
+* Upload Resume
+
+---
+
+# 7. DASHBOARD — SHARED JOBS
+
+Add a section:
+
+## Latest Jobs From Everyone
+
+Show recently shared jobs that are visible to the current user.
+
+Example:
+
+TCS
+DevOps Engineer
+Bangalore
+
+Shared by:
+Darshan
+
+[Open Job]
+[Save]
+
+---
+
+Add another section:
+
+## Jobs From Friends
+
+Example:
+
+Rahul shared:
+Infosys — QA Engineer
+
+Amit shared:
+Wipro — Cloud Engineer
+
+[View All Friends' Jobs]
+
+---
+
+Add:
+
+## Upcoming Walk-ins
+
+Show today's and tomorrow's walk-ins.
+
+If there is a walk-in tomorrow:
+
+🚨 WALK-IN TOMORROW
+
+Company:
+TCS
+
+Role:
+Software Engineer
+
+Time:
+10:00 AM
+
+Location:
+Bangalore
+
+Resume:
+DevOps Resume v3
+
+[View Details]
+
+---
+
+# 8. MY APPLICATIONS
+
+Create a private Applications page.
+
+Only the logged-in user can see their applications.
+
+Other users must NEVER see:
+
+* Application status
+* Resume used
+* Private notes
+* Follow-up dates
+* Interview status
+* Application timeline
+
+---
+
+# 9. APPLICATION STATUSES
+
+Use:
+
+* Saved
+* Applied
+* Assessment
+* Interview
+* Offer
+* Rejected
+* Withdrawn
+
+---
+
+# 10. ADD JOB
+
+Create a fast Add Job form.
+
+Required:
+
+* Company
+* Job Title
+* Job URL
+
+Optional:
+
+* Location
+* Source
+* Resume Used
+* Status
+* Applied Date
+* Follow-up Date
+* Salary
+* Notes
+* Visibility
+
+Sources:
+
+* LinkedIn
+* Naukri
+* Indeed
+* Company Website
+* Referral
+* Walk-in
+* Friend
+* Other
+
+---
+
+# 11. JOB VISIBILITY
+
+Every job must have a visibility option.
+
+Options:
+
+### Everyone
+
+All authenticated JobTrack users can see the job.
+
+### Friends
+
+Only accepted friends can see the job.
+
+### Only Me
+
+Only the owner can see the job.
+
+Default:
+
+Only Me
+
+UI:
+
+Who can see this job?
+
+○ Everyone
+
+○ Friends
+
+○ Only Me
+
+The user can change visibility later.
+
+---
+
+# 12. SHARED JOB PRIVACY
+
+When a job is shared, other users can see only job opportunity information.
+
+They can see:
+
+* Company
+* Job Title
+* Location
+* Job URL
+* Source
+* Salary
+* Job description
+* Date added
+* Shared by user name
+
+They must NOT see:
+
+* Whether the owner applied
+* Which resume the owner used
+* Owner's private notes
+* Owner's follow-up date
+* Owner's interview status
+* Owner's application timeline
+* Owner's personal email
+* Owner's private data
+
+---
+
+# 13. JOB FEED
+
+Create a page called:
+
+## Job Feed
+
+This is where users discover job links shared by other users.
+
+Show two tabs:
+
+### Everyone
+
+Shows jobs where:
+
+visibility = everyone
+
+### Friends
+
+Shows jobs where:
+
+visibility = friends
+
+and the current user is an accepted friend of the owner.
+
+The user should be able to switch between:
+
+Everyone
+Friends
+
+---
+
+# 14. JOB FEED FILTERS
+
+This is REQUIRED.
+
+The user should be able to filter shared jobs.
+
+Filters:
+
+### Friend
+
+Example:
+
+All Friends
+
+Rahul
+
+Amit
+
+Suresh
+
+Darshan
+
+### Company
+
+Example:
+
+TCS
+
+Infosys
+
+Wipro
+
+Accenture
+
+Cisco
+
+Microsoft
+
+Google
+
+etc.
+
+The list must be dynamically generated from available jobs.
+
+### Job Role
+
+Example:
+
+DevOps Engineer
+
+Cloud Engineer
+
+QA Engineer
+
+Software Engineer
+
+Data Analyst
+
+### Location
+
+Example:
+
+Bangalore
+
+Pune
+
+Mumbai
+
+Hyderabad
+
+Remote
+
+### Source
+
+LinkedIn
+
+Naukri
+
+Indeed
+
+Company Website
+
+Referral
+
+Walk-in
+
+Other
+
+### Date
+
+Today
+
+This Week
+
+This Month
+
+Custom Date Range
+
+---
+
+# 15. SEARCH IN JOB FEED
+
+Add:
+
+Search company, role, location...
+
+Search should work across:
+
+* Company
+* Job title
+* Location
+* Source
+* Shared by
+
+Search should update automatically.
+
+No separate Search button is required.
+
+---
+
+# 16. FRIEND FILTER
+
+Very important.
+
+The user should be able to choose:
+
+Friend:
+
+[All Friends]
+
+or:
+
+[Darshan]
+
+[Rahul]
+
+[Amit]
+
+[Suresh]
+
+If Rahul is selected:
+
+Only jobs shared by Rahul should appear.
+
+Example:
+
+Filter:
+
+Friend = Rahul
+
+Company = TCS
+
+Role = DevOps Engineer
+
+Then show only Rahul's TCS DevOps Engineer jobs.
+
+---
+
+# 17. COMPANY FILTER
+
+If the user selects:
+
+Company = TCS
+
+show all visible TCS jobs.
+
+Example:
+
+TCS
+DevOps Engineer
+Shared by Rahul
+
+TCS
+Cloud Engineer
+Shared by Amit
+
+TCS
+Software Engineer
+Shared by Suresh
+
+---
+
+# 18. MULTIPLE FILTERS
+
+Filters must work together.
+
+Example:
+
+Friend = Rahul
+
+Company = TCS
+
+Location = Bangalore
+
+Role = DevOps Engineer
+
+Result:
+
+Only matching jobs.
+
+Add a:
+
+Clear Filters
+
+button.
+
+---
+
+# 19. SHARED JOB CARD
+
+Each shared job should look like:
+
+---
+
+TCS
+
+DevOps Engineer
+
+📍 Bangalore
+
+🔗 LinkedIn
+
+Shared by Rahul
+
+Added:
+02 Oct 2026
+
+[Open Job]
+
+[Save to My Jobs]
+
+---
+
+Do not display the owner's private application information.
+
+---
+
+# 20. OPEN JOB
+
+When user clicks:
+
+Open Job
+
+open the original job URL in a new browser tab.
+
+Do not proxy or modify the job website.
+
+---
+
+# 21. SAVE SHARED JOB
+
+When user clicks:
+
+Save to My Jobs
+
+create a new private job record for that user.
+
+Set:
+
+Status = Saved
+
+Do NOT automatically mark as Applied.
+
+The user can then:
+
+* Select resume
+* Mark Applied
+* Add notes
+* Add follow-up
+* Track the application
+
+Store:
+
+source = Shared Job
+
+source_shared_job_id = original shared job ID
+
+Optionally store:
+
+shared_by_user_id
+
+This lets the user know where the opportunity came from.
+
+Example:
+
+TCS
+DevOps Engineer
+
+Source:
+Shared by Rahul
+
+Status:
+Saved
+
+[Mark as Applied]
+
+---
+
+# 22. DUPLICATE CHECK FOR SHARED JOB
+
+If the user already has the same job URL in their private jobs:
+
+show:
+
+"This job is already in My Applications."
+
+Buttons:
+
+[View Existing]
+
+[Save Anyway]
+
+Do not automatically create duplicates without warning.
+
+---
+
+# 23. MY JOBS
+
+Private job list should show:
+
+* Company
+* Role
+* Resume
+* Status
+* Applied Date
+* Follow-up Date
+* Visibility
+
+Example:
+
+TCS
+DevOps Engineer
+Resume: DevOps Resume v3
+Status: Applied
+Visibility: Everyone
+
+IMPORTANT:
+
+Visibility does NOT mean other users can see the application.
+
+They only see the shared job opportunity.
+
+---
+
+# 24. RESUME MANAGEMENT
+
+Create Resumes page.
+
+Allow PDF upload.
+
+Fields:
+
+* Resume Name
+* Version
+* Description
+* PDF
+
+Examples:
+
+DevOps Resume v1
+
+DevOps Resume v2
+
+DevOps Resume v3
+
+Cloud Resume v1
+
+QA Resume v1
+
+Show:
+
+* Upload date
+* Version
+* Usage count
+* Archive status
+
+Actions:
+
+View
+
+Download
+
+Archive
+
+---
+
+# 25. CRITICAL RESUME RELATIONSHIP
+
+Every private application must store the exact resume used.
+
+Use:
+
+job.resume_id → resumes.id
+
+Example:
+
+TCS DevOps Engineer
+
+Resume Used:
+
+DevOps Resume v3
+
+If the user uploads DevOps Resume v4 later:
+
+Old TCS application must still show:
+
+DevOps Resume v3
+
+Never replace historical resume relationships automatically.
+
+---
+
+# 26. APPLICATION TIMELINE
+
+Each private application has a timeline.
+
+Events:
+
+* Job Added
+* Application Submitted
+* Assessment Received
+* Assessment Completed
+* Interview
+* Offer
+* Rejected
+* Custom Event
+
+Each event:
+
+* Date
+* Type
+* Notes
+
+---
+
+# 27. MARK AS APPLIED
+
+Provide:
+
+[Mark as Applied]
+
+When clicked:
+
+1. Status = Applied
+2. Applied date = Today
+3. Add timeline event = Application Submitted
+
+---
+
+# 28. APPLICATION SEARCH
+
+Search private applications by:
+
+* Company
+* Job role
+* Resume
+* Location
+* Source
+* Notes
+
+Filters:
+
+* Status
+* Resume
+* Location
+* Source
+* Date
+
+Sorting:
+
+* Newest
+* Oldest
+* Company A-Z
+* Company Z-A
+* Role A-Z
+* Follow-up Date
+
+---
+
+# 29. WALK-IN DRIVES
+
+Create:
+
+## My Walk-ins
+
+Sections:
+
+* Upcoming
+* Today
+* Tomorrow
+* Past
+
+---
+
+# 30. ADD WALK-IN
+
+Fields:
+
+* Company
+* Job Role
+* Date
+* Start Time
+* End Time
+* Location
+* Full Address
+* Registration URL
+* Resume
+* Contact / HR
+* Notes
+* Status
+* Visibility
+* Reminder Enabled
+* Email Reminder Enabled
+
+---
+
+# 31. WALK-IN VISIBILITY
+
+Same visibility options:
+
+○ Everyone
+
+○ Friends
+
+○ Only Me
+
+Default:
+
+Only Me
+
+If Everyone:
+
+All authenticated users can see the walk-in.
+
+If Friends:
+
+Only accepted friends can see it.
+
+If Only Me:
+
+Only owner sees it.
+
+---
+
+# 32. SHARED WALK-IN FEED
+
+In Job Feed also add:
+
+### Jobs
+
+### Walk-ins
+
+tabs.
+
+Walk-ins tab shows visible shared walk-ins.
+
+Filters:
+
+* Friend
+* Company
+* Role
+* Location
+* Date
+
+Actions:
+
+[View Details]
+
+[Open Registration]
+
+[Save to My Walk-ins]
+
+---
+
+# 33. SAVE SHARED WALK-IN
+
+When someone clicks:
+
+Save to My Walk-ins
+
+create a private walk-in record.
+
+Do not expose the original owner's private information.
+
+---
+
+# 34. WALK-IN CHECKLIST
+
+Default checklist:
+
+* Resume printed
+* Resume PDF ready
+* ID proof
+* Certificates
+* Passport photos
+* Formal clothes
+* Registration completed
+* Location checked
+
+Allow custom checklist items.
+
+---
+
+# 35. WALK-IN REMINDER
+
+Default:
+
+1 day before.
+
+Dashboard should show:
+
+🚨 WALK-IN TOMORROW
+
+Company
+
+Role
+
+Time
+
+Location
+
+Resume
+
+[View Details]
+
+---
+
+# 36. MULTIPLE EMAIL RECIPIENTS
+
+Create:
+
+Settings → Email Notifications
+
+Allow multiple recipient emails.
+
+Example:
+
+☑ [darshan@gmail.com](mailto:darshan@gmail.com)
+
+☑ [backup@gmail.com](mailto:backup@gmail.com)
+
+☑ [family@gmail.com](mailto:family@gmail.com)
+
+Button:
+
+[+ Add Email]
+
+Each email has:
+
+* Email
+* Name
+* Enabled
+* Delete
+
+---
+
+# 37. EMAIL SETTINGS
+
+Options:
+
+☑ Walk-in reminders
+
+☑ Follow-up reminders
+
+☑ Interview reminders
+
+Default:
+
+Walk-in reminder = 1 day before.
+
+---
+
+# 38. EMAIL REMINDER LOGIC
+
+For each walk-in:
+
+If:
+
+reminder_enabled = true
+
+AND
+
+email_reminder = true
+
+AND
+
+reminder_sent = false
+
+AND reminder date has arrived
+
+send email to all enabled notification email addresses.
+
+After successful sending:
+
+reminder_sent = true
+
+This prevents duplicate emails.
+
+---
+
+# 39. EMAIL PROVIDER
+
+Do NOT use n8n.
+
+Use a simple transactional email provider such as Resend.
+
+Use Supabase Edge Function to call the email API.
+
+Architecture:
+
+React
+
+↓
+
+Supabase
+
+↓
+
+Supabase Edge Function
+
+↓
+
+Email Provider
+
+↓
+
+Multiple Email Recipients
+
+Keep the email API key server-side.
+
+Never expose it in frontend environment variables.
+
+---
+
+# 40. EMAIL CONTENT
+
+Subject:
+
+🚨 Walk-in Tomorrow – TCS – DevOps Engineer
+
+Body:
+
+Hello,
+
+This is your JobTrack reminder.
+
+You have a walk-in drive tomorrow.
+
+Company:
+TCS
+
+Role:
+DevOps Engineer
+
+Date:
+04 October 2026
+
+Time:
+10:00 AM – 2:00 PM
+
+Location:
+Bangalore
+
+Address:
+Full address
+
+Resume:
+DevOps Resume v3
+
+Registration:
+Link
+
+Notes:
+Notes
+
+Good luck!
+
+---
+
+# 41. FRIENDS SYSTEM
+
+Create:
+
+## Friends
+
+Users can search for another JobTrack user using email.
+
+Send friend request.
+
+Statuses:
+
+* Pending
+* Accepted
+* Rejected
+* Blocked
+
+Only accepted friends can see content marked:
+
+Friends
+
+---
+
+# 42. FRIENDS PAGE
+
+Show:
+
+### My Friends
+
+Rahul
+
+Amit
+
+Suresh
+
+Actions:
+
+* View shared jobs
+* Remove friend
+
+### Friend Requests
+
+Pending requests.
+
+Actions:
+
+Accept
+
+Reject
+
+---
+
+# 43. FRIEND PROFILE
+
+Keep profiles simple.
+
+Show:
+
+* Name
+* Profile photo optional
+* Shared jobs count
+
+Do NOT show:
+
+* Applications
+* Resumes
+* Private notes
+* Interview details
+* Personal tracking data
+
+---
+
+# 44. SHARING A JOB
+
+On private job details add:
+
+[Share]
+
+Visibility:
+
+○ Everyone
+
+○ Friends
+
+○ Only Me
+
+If Friends:
+
+Optionally select specific friends OR share with all accepted friends.
+
+Keep the first version simple.
+
+---
+
+# 45. SHARING A WALK-IN
+
+Same:
+
+[Share]
+
+○ Everyone
+
+○ Friends
+
+○ Only Me
+
+---
+
+# 46. JOB FEED DEFAULT
+
+When user opens Job Feed:
+
+Default tab:
+
+Everyone
+
+Sort:
+
+Newest first.
+
+Show:
+
+Latest shared jobs.
+
+Allow switching to:
+
+Friends
+
+---
+
+# 47. JOB FEED UI
+
+Example:
+
+---
+
+🔥 Job Feed
+
+[Everyone] [Friends]
+
+Search:
+Search company, role, location...
+
+Filters:
+
+Friend
+Company
+Role
+Location
+Source
+Date
+
+---
+
+TCS
+DevOps Engineer
+
+📍 Bangalore
+
+Shared by Rahul
+
+[Open Job] [Save]
+
+---
+
+Infosys
+QA Engineer
+
+📍 Pune
+
+Shared by Amit
+
+[Open Job] [Save]
+
+---
+
+# 48. DATABASE
+
+Use Supabase PostgreSQL.
+
+Tables:
+
+## profiles
+
+id
+name
+email
+avatar_url
+created_at
+
+## resumes
+
+id
+user_id
+name
+version
+description
+file_path
+is_archived
+created_at
+updated_at
+
+## jobs
+
+id
+user_id
+company
+job_title
+location
+job_url
+source
+status
+resume_id
+salary
+notes
+applied_date
+follow_up_date
+visibility
+source_shared_job_id
+created_at
+updated_at
+
+visibility values:
+
+everyone
+friends
+private
+
+## application_events
+
+id
+job_id
+user_id
+event_type
+event_date
+notes
+created_at
+
+## walkin_drives
+
+id
+user_id
+company
+job_title
+date
+start_time
+end_time
+location
+address
+registration_url
+resume_id
+contact_details
+notes
+status
+visibility
+reminder_enabled
+reminder_days_before
+email_reminder
+reminder_sent
+source_shared_walkin_id
+created_at
+updated_at
+
+## walkin_checklist
+
+id
+walkin_id
+item
+completed
+
+## notification_emails
+
+id
+user_id
+email
+name
+enabled
+created_at
+
+## friend_requests
+
+id
+sender_user_id
+receiver_user_id
+status
+created_at
+updated_at
+
+## shared_job_access
+
+id
+job_id
+friend_user_id
+created_at
+
+Only required if specific friend sharing is implemented.
+
+## shared_walkin_access
+
+id
+walkin_id
+friend_user_id
+created_at
+
+Only required if specific friend sharing is implemented.
+
+---
+
+# 49. SHARING LOGIC
+
+If job.visibility = private:
+
+Only owner can see it.
+
+If job.visibility = everyone:
+
+Any authenticated JobTrack user can see it.
+
+If job.visibility = friends:
+
+Only accepted friends can see it.
+
+The same logic applies to walk-ins.
+
+---
+
+# 50. IMPORTANT RLS SECURITY
+
+Use Supabase Row Level Security.
+
+Private application data must NEVER leak through the shared job feed.
+
+A user viewing a shared job must only receive the public/shared fields.
+
+Do not expose private application fields through API responses.
+
+---
+
+# 51. RESUME SECURITY
+
+Resumes are private.
+
+Use Supabase Storage private bucket.
+
+Use signed URLs.
+
+Never expose resume files to other users.
+
+Even if a job is shared with Everyone, the resume used by the owner must not be visible.
+
+---
+
+# 52. ANALYTICS
+
+Create simple Analytics page.
+
+Show:
+
+* Total applications
+* Status distribution
+* Applications by role
+* Applications by source
+* Applications over time
+* Resume usage
+* Jobs saved from friends/shared feed
+
+Do not make analytics complicated.
+
+Use Recharts where useful.
+
+---
+
+# 53. CALENDAR
+
+Create simple calendar.
+
+Display:
+
+* Walk-ins
+* Interviews
+* Follow-ups
+
+Click event to open details.
+
+---
+
+# 54. CSV EXPORT
+
+Allow:
+
+Export Applications
+
+Columns:
+
+Company
+Job Title
+Location
+Job URL
+Source
+Resume
+Status
+Applied Date
+Follow-up Date
+Salary
+Notes
+
+Also:
+
+Export Walk-ins
+
+---
+
+# 55. UI DESIGN
+
+Use a modern clean UI.
+
+Style:
+
+* Simple
+* Professional
+* Minimal
+* Fast
+* Responsive
+
+Use Tailwind CSS.
+
+Use Lucide icons.
+
+Use clear status badges.
+
+Do not overuse animations.
+
+Avoid unnecessary modals.
+
+Use confirmation before deletion.
+
+---
+
+# 56. RESPONSIVE DESIGN
+
+Desktop:
+
+Sidebar + content.
+
+Mobile:
+
+Hamburger menu or bottom navigation.
+
+Tables should become cards on mobile.
+
+Forms should work comfortably on mobile.
+
+---
+
+# 57. IMPORTANT EMPTY STATES
+
+If there are no applications:
+
+"No applications yet."
+
+Button:
+
+[+ Add Job]
+
+If there are no shared jobs:
+
+"No shared jobs available yet."
+
+If there are no friends:
+
+"You haven't added any friends yet."
+
+Button:
+
+[Find Friends]
+
+If there are no walk-ins:
+
+"No walk-in drives yet."
+
+---
+
+# 58. ERROR AND LOADING STATES
+
+Every database operation should have:
+
+* Loading indicator
+* Success message
+* Error message
+
+Do not leave the user wondering whether an operation worked.
+
+---
+
+# 59. DUPLICATE DETECTION
+
+When adding a job:
+
+First check exact Job URL.
+
+Also check:
+
+Company + Job Title.
+
+If possible duplicate:
+
+"Possible duplicate job"
+
+Show existing record.
+
+Buttons:
+
+[View Existing]
+
+[Add Anyway]
+
+Do not completely block adding.
+
+---
+
+# 60. PROJECT STRUCTURE
+
+Use:
+
+jobtrack/
+
+src/
+components/
+pages/
+Dashboard/
+Applications/
+JobFeed/
+Walkins/
+Resumes/
+Analytics/
+Friends/
+Settings/
+layouts/
+hooks/
+services/
+lib/
+supabase.ts
+types/
+utils/
+App.tsx
+main.tsx
+
+supabase/
+migrations/
+functions/
+
+public/
+
+.env.example
+README.md
+
+---
+
+# 61. ENVIRONMENT VARIABLES
+
+Frontend:
+
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+
+Server-side:
+
+RESEND_API_KEY=
+EMAIL_FROM=
+
+Never expose:
+
+RESEND_API_KEY
+
+to the React frontend.
+
+---
+
+# 62. DEVELOPMENT ORDER
+
+Build in this order:
+
+1. React + Vite + TypeScript
+2. Tailwind
+3. Supabase setup
+4. Authentication
+5. Database schema
+6. RLS policies
+7. Dashboard
+8. Private Applications CRUD
+9. Search/filter/sorting
+10. Resume upload
+11. Resume relationships
+12. Application timeline
+13. Friends system
+14. Job visibility
+15. Shared Job Feed
+16. Friend filters
+17. Save Shared Job
+18. Walk-in management
+19. Shared Walk-ins
+20. Walk-in checklist
+21. Multiple email recipients
+22. Reminder system
+23. Email integration
+24. Calendar
+25. Analytics
+26. CSV export
+27. Responsive UI
+28. Testing
+29. Production build
+30. Deployment
+
+---
+
+# 63. FINAL USER WORKFLOW
+
+The following complete workflow must work.
+
+### User A
+
+1. Creates JobTrack account.
+2. Uploads DevOps Resume v3.
+3. Adds a TCS DevOps Engineer job.
+4. Selects DevOps Resume v3.
+5. Chooses visibility = Everyone.
+6. Saves job.
+
+### User B
+
+1. Logs into JobTrack.
+2. Opens Job Feed.
+3. Sees:
+
+TCS
+DevOps Engineer
+Bangalore
+Shared by User A
+
+4. Filters:
+
+Company = TCS
+
+5. Opens job.
+6. Clicks Open Job.
+7. Applies on the company's website.
+8. Returns to JobTrack.
+9. Clicks Save to My Jobs.
+10. Selects their own resume.
+11. Marks Applied.
+
+User B's application is completely private.
+
+User A cannot see User B's application status.
+
+---
+
+# 64. FRIEND WORKFLOW
+
+User A adds User B as a friend.
+
+User B accepts.
+
+User A creates:
+
+TCS DevOps Engineer
+
+Visibility:
+
+Friends
+
+User B sees the job.
+
+User C, who is not a friend, does not see the job.
+
+---
+
+# 65. PRIVATE WORKFLOW
+
+User A creates:
+
+Microsoft Cloud Engineer
+
+Visibility:
+
+Only Me
+
+Only User A can see it.
+
+It does not appear in:
+
+* Everyone feed
+* Friends feed
+* Search results for other users
+
+---
+
+# 66. WALK-IN SHARING WORKFLOW
+
+User A adds:
+
+TCS
+DevOps Engineer
+10 Oct
+10 AM
+Bangalore
+
+Visibility:
+
+Everyone
+
+Other users can see the walk-in.
+
+They can:
+
+[View Details]
+
+[Open Registration]
+
+[Save to My Walk-ins]
+
+They cannot see User A's:
+
+* Resume
+* Application status
+* Private notes
+* Reminder settings
+* Email addresses
+
+---
+
+# 67. EMAIL WORKFLOW
+
+User adds:
+
+[darshan@gmail.com](mailto:darshan@gmail.com)
+
+[backup@gmail.com](mailto:backup@gmail.com)
+
+Both enabled.
+
+A walk-in is scheduled for tomorrow.
+
+The system sends one reminder email to both addresses.
+
+After successful sending:
+
+reminder_sent = true
+
+Running the reminder process again must NOT send another email.
+
+---
+
+# 68. PERFORMANCE
+
+Keep the app fast.
+
+Use:
+
+* Pagination where needed
+* Debounced search where appropriate
+* Database indexes
+* Efficient Supabase queries
+* Lazy loading for pages where useful
+
+Do not over-engineer.
+
+---
+
+# 69. DATABASE INDEXES
+
+Add useful indexes for:
+
+jobs:
+
+* user_id
+* company
+* job_title
+* status
+* visibility
+* created_at
+
+walkin_drives:
+
+* user_id
+* date
+* visibility
+
+friend_requests:
+
+* sender_user_id
+* receiver_user_id
+* status
+
+This will make filtering and feeds faster.
+
+---
+
+# 70. README
+
+Create a detailed README explaining:
+
+* Project overview
+* Features
+* Tech stack
+* Local setup
+* Supabase setup
+* Database migrations
+* Authentication setup
+* Storage setup
+* RLS
+* Email provider setup
+* Supabase Edge Functions
+* Environment variables
+* Running locally
+* Building
+* Deploying to Netlify/Vercel
+* Reminder configuration
+* Troubleshooting
+
+---
+
+# 71. ACCEPTANCE CRITERIA
+
+The project is complete only when all of these work:
+
+Authentication:
+
+* Signup
+* Login
+* Logout
+
+Private jobs:
+
+* Add
+* Edit
+* Delete
+* Search
+* Filter
+* Sort
+* Mark Applied
+
+Resumes:
+
+* Upload PDF
+* View
+* Download
+* Archive
+* Track usage
+* Correct resume relationship
+
+Application tracking:
+
+* Status
+* Follow-up
+* Timeline
+
+Friends:
+
+* Send request
+* Accept request
+* Reject request
+* Remove friend
+
+Sharing:
+
+* Everyone
+* Friends
+* Only Me
+
+Job Feed:
+
+* Everyone jobs
+* Friends jobs
+* Search
+* Friend filter
+* Company filter
+* Role filter
+* Location filter
+* Source filter
+* Date filter
+* Multiple filters together
+
+Shared jobs:
+
+* Open original link
+* Save to My Jobs
+* Duplicate warning
+
+Walk-ins:
+
+* Add
+* Edit
+* Delete
+* Checklist
+* Visibility
+* Shared walk-in feed
+* Save shared walk-in
+
+Notifications:
+
+* Multiple email addresses
+* Enable/disable email
+* Walk-in reminder
+* Duplicate email prevention
+
+Analytics:
+
+* Application statistics
+* Resume usage
+* Shared jobs saved
+
+Export:
+
+* Applications CSV
+* Walk-in CSV
+
+Security:
+
+* RLS
+* Private applications
+* Private resumes
+* Private notes
+* No cross-user data leakage
+
+Responsive:
+
+* Desktop
+* Mobile
+
+---
+
+# 72. MOST IMPORTANT RULE
+
+Keep the application SIMPLE.
+
+The primary goal is:
+
+1. Find a job.
+2. Save the job.
+3. Decide who can see it.
+4. Let friends discover useful jobs.
+5. Open the original job link.
+6. Save it to personal applications.
+7. Select the exact resume.
+8. Track the application.
+9. Track walk-ins.
+10. Receive reminders.
+
+Do not add unnecessary features.
+
+Build a polished, practical personal job-tracking application rather than a complicated enterprise system.

@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-[#0f0f13] text-[#f0f0ff] font-sans antialiased;
+    background-image: 
+      radial-gradient(ellipse at 20% 10%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-[#2a2a3d] rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-[#3d3d5a];
+  }
+
+  input, textarea, select {
+    @apply bg-[#1c1c28] border border-[#2a2a3d] text-[#f0f0ff] rounded-lg px-3 py-2 
+           outline-none transition-all duration-200
+           placeholder:text-[#6666a0]
+           focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20;
+  }
+
+  label {
+    @apply text-sm font-medium text-[#9898b8];
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg
+           transition-all duration-200 flex items-center gap-2 
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-[#1c1c28] hover:bg-[#232334] text-[#f0f0ff] font-medium px-4 py-2 rounded-lg
+           border border-[#2a2a3d] transition-all duration-200 flex items-center gap-2
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply bg-red-600/20 hover:bg-red-600/30 text-red-400 font-medium px-4 py-2 rounded-lg
+           border border-red-500/30 transition-all duration-200 flex items-center gap-2
+           active:scale-95;
+  }
+
+  .card {
+    @apply bg-[#1c1c28] border border-[#2a2a3d] rounded-xl p-4 
+           transition-all duration-200;
+  }
+
+  .card-hover {
+    @apply card hover:bg-[#232334] hover:border-[#32324a] cursor-pointer;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold text-[#f0f0ff];
+  }
+
+  .page-subtitle {
+    @apply text-[#9898b8] text-sm;
+  }
+
+  .section-title {
+    @apply text-lg font-semibold text-[#f0f0ff];
+  }
+
+  .input-group {
+    @apply flex flex-col gap-1.5;
+  }
+
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in;
+  }
+
+  .modal-content {
+    @apply bg-[#1c1c28] border border-[#2a2a3d] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-slide-up;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#9898b8] 
+           hover:text-[#f0f0ff] hover:bg-[#232334] transition-all duration-150 text-sm font-medium;
+  }
+
+  .sidebar-link.active {
+    @apply text-indigo-300 bg-indigo-500/10 border border-indigo-500/20;
+  }
+
+  .stat-card {
+    @apply card flex flex-col gap-1;
+  }
+
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-16 text-center gap-4;
+  }
+
+  .empty-state-icon {
+    @apply w-16 h-16 rounded-2xl bg-[#1c1c28] border border-[#2a2a3d] flex items-center justify-center text-[#6666a0];
+  }
+
+  .table-header {
+    @apply text-xs font-medium text-[#9898b8] uppercase tracking-wider;
+  }
+
+  .form-section {
+    @apply flex flex-col gap-4;
+  }
+
+  .divider {
+    @apply border-t border-[#2a2a3d];
+  }
+
+  .glow-indigo {
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.15);
+  }
+}
+
+/* Animations for page transitions */
+.page-enter {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Custom radio button styling */
+input[type="radio"] {
+  @apply accent-indigo-500;
+}
+
+input[type="checkbox"] {
+  @apply accent-indigo-500;
+}
+
+/* Toast notifications */
+.toast {
+  @apply fixed bottom-4 right-4 z-[100] flex items-center gap-3 px-4 py-3 
+         rounded-xl shadow-2xl border text-sm font-medium animate-slide-up min-w-[280px];
+}
+
+.toast-success {
+  @apply bg-emerald-900/90 border-emerald-500/30 text-emerald-300;
+}
+
+.toast-error {
+  @apply bg-red-900/90 border-red-500/30 text-red-300;
+}
+
+.toast-info {
+  @apply bg-indigo-900/90 border-indigo-500/30 text-indigo-300;
+}
