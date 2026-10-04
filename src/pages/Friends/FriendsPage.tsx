@@ -150,22 +150,22 @@ export default function FriendsPage() {
 
       {/* Pending Requests Received */}
       {pendingReceived.length > 0 && (
-        <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/30 animate-slide-up">
-          <h2 className="text-sm font-semibold text-indigo-300 flex items-center gap-2 mb-3">
+        <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 animate-slide-up">
+          <h2 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-2 mb-3">
             <UserCheck className="w-4 h-4" /> Pending Friend Requests ({pendingReceived.length})
           </h2>
           <div className="flex flex-col gap-2">
             {pendingReceived.map(req => {
               const sender = req.sender as unknown as Profile;
               return (
-                <div key={req.id} className="card bg-[#1a1a28] flex items-center justify-between gap-3 p-3">
+                <div key={req.id} className="card bg-white dark:bg-[#1a1a28] border border-slate-200 dark:border-[#2a2a3d] flex items-center justify-between gap-3 p-3 shadow-sm dark:shadow-none">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
                       {sender?.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-[#f0f0ff] text-sm truncate">{sender?.name}</p>
-                      <p className="text-xs text-[#9898b8] truncate">{sender?.email}</p>
+                      <p className="font-semibold text-slate-900 dark:text-[#f0f0ff] text-sm truncate">{sender?.name}</p>
+                      <p className="text-xs text-slate-600 dark:text-[#9898b8] truncate">{sender?.email}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
@@ -192,21 +192,21 @@ export default function FriendsPage() {
       )}
 
       {/* Active Friends List */}
-      <div className="card">
+      <div className="card shadow-sm dark:shadow-none">
         <h2 className="section-title mb-4 flex items-center justify-between">
           <span>My Friends ({friends.length})</span>
         </h2>
 
         {friends.length === 0 ? (
-          <div className="text-center py-6 text-[#9898b8]">
-            <Users className="w-9 h-9 text-[#6666a0] mx-auto mb-2 opacity-80" />
-            <p className="text-sm font-medium text-[#f0f0ff]">No friends added yet</p>
-            <p className="text-xs text-[#6666a0] mt-1">Connect with registered users below or invite friends to join!</p>
+          <div className="text-center py-6 text-slate-500 dark:text-[#9898b8]">
+            <Users className="w-9 h-9 text-slate-400 dark:text-[#6666a0] mx-auto mb-2 opacity-80" />
+            <p className="text-sm font-medium text-slate-900 dark:text-[#f0f0ff]">No friends added yet</p>
+            <p className="text-xs text-slate-500 dark:text-[#6666a0] mt-1">Connect with registered users below or invite friends to join!</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {friends.map(({ profile, requestId }) => (
-              <div key={profile.id} className="p-3.5 rounded-xl bg-[#12121a] border border-[#2a2a3d] flex items-center justify-between gap-3 hover:border-indigo-500/30 transition-all">
+              <div key={profile.id} className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#12121a] border border-slate-200 dark:border-[#2a2a3d] flex items-center justify-between gap-3 hover:border-indigo-500/30 transition-all shadow-sm dark:shadow-none">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
                     {profile.avatar_url ? (
@@ -216,14 +216,14 @@ export default function FriendsPage() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-[#f0f0ff] text-sm truncate">{profile.name}</p>
-                    <p className="text-xs text-[#9898b8] truncate">{profile.email}</p>
+                    <p className="font-semibold text-slate-900 dark:text-[#f0f0ff] text-sm truncate">{profile.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-[#9898b8] truncate">{profile.email}</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => removeFriend(requestId)} 
                   disabled={actionLoading === requestId}
-                  className="p-1.5 text-[#6666a0] hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-colors" 
+                  className="p-1.5 text-slate-400 dark:text-[#6666a0] hover:text-red-500 dark:hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-colors" 
                   title="Remove friend"
                 >
                   <UserX className="w-4 h-4" />
@@ -235,17 +235,17 @@ export default function FriendsPage() {
       </div>
 
       {/* Discover / Add Registered Users */}
-      <div className="card">
+      <div className="card shadow-sm dark:shadow-none">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
             <h2 className="section-title flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400" /> Discover & Add Users
+              <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400" /> Discover & Add Users
             </h2>
-            <p className="text-xs text-[#9898b8] mt-0.5">Search or send friend requests to members registered on JobTrack</p>
+            <p className="text-xs text-slate-500 dark:text-[#9898b8] mt-0.5">Search or send friend requests to members registered on JobTrack</p>
           </div>
 
           <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6666a0]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-[#6666a0]" />
             <input
               type="text"
               value={searchQuery}
@@ -261,9 +261,9 @@ export default function FriendsPage() {
             <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div className="text-center py-8 text-[#9898b8]">
+          <div className="text-center py-8 text-slate-500 dark:text-[#9898b8]">
             <p className="text-sm">No registered users found matching "{searchQuery}"</p>
-            <p className="text-xs text-[#6666a0] mt-1">When friends create an account, they will automatically show up here!</p>
+            <p className="text-xs text-slate-400 dark:text-[#6666a0] mt-1">When friends create an account, they will automatically show up here!</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -273,24 +273,24 @@ export default function FriendsPage() {
               const receivedReq = pendingReceivedMap.get(targetUser.id);
 
               return (
-                <div key={targetUser.id} className="p-3 rounded-xl bg-[#12121a] border border-[#2a2a3d] flex items-center justify-between gap-3">
+                <div key={targetUser.id} className="p-3 rounded-xl bg-slate-50 dark:bg-[#12121a] border border-slate-200 dark:border-[#2a2a3d] flex items-center justify-between gap-3 shadow-sm dark:shadow-none">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-[#2a2a3d] flex items-center justify-center text-xs font-bold text-indigo-300 flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-[#2a2a3d] flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-300 flex-shrink-0">
                       {targetUser.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-medium text-[#f0f0ff] text-sm truncate">{targetUser.name}</p>
-                      <p className="text-xs text-[#9898b8] truncate">{targetUser.email}</p>
+                      <p className="font-medium text-slate-900 dark:text-[#f0f0ff] text-sm truncate">{targetUser.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-[#9898b8] truncate">{targetUser.email}</p>
                     </div>
                   </div>
 
                   <div className="flex-shrink-0">
                     {isFriend ? (
-                      <span className="badge bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs py-1 px-2 flex items-center gap-1">
+                      <span className="badge bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 text-xs py-1 px-2 flex items-center gap-1">
                         <Check className="w-3 h-3" /> Friends
                       </span>
                     ) : isPendingSent ? (
-                      <span className="badge bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs py-1 px-2">
+                      <span className="badge bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 text-xs py-1 px-2">
                         Pending
                       </span>
                     ) : receivedReq ? (
@@ -324,28 +324,28 @@ export default function FriendsPage() {
 
       {/* Pending Sent Requests */}
       {pendingSent.length > 0 && (
-        <div className="card">
-          <h2 className="section-title mb-3 text-xs uppercase tracking-wider text-[#6666a0]">
+        <div className="card shadow-sm dark:shadow-none">
+          <h2 className="section-title mb-3 text-xs uppercase tracking-wider text-slate-500 dark:text-[#6666a0]">
             Sent Friend Requests ({pendingSent.length})
           </h2>
           <div className="flex flex-col gap-2">
             {pendingSent.map(req => {
               const receiver = req.receiver as unknown as Profile;
               return (
-                <div key={req.id} className="flex items-center justify-between p-2.5 rounded-lg bg-[#12121a] border border-[#2a2a3d]">
+                <div key={req.id} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-[#12121a] border border-slate-200 dark:border-[#2a2a3d]">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-full bg-[#2a2a3d] flex items-center justify-center text-xs font-semibold text-white">
+                    <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-[#2a2a3d] flex items-center justify-center text-xs font-semibold text-indigo-700 dark:text-white">
                       {receiver?.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-medium text-[#f0f0ff] truncate">{receiver?.name}</p>
-                      <p className="text-[11px] text-[#6666a0] truncate">{receiver?.email}</p>
+                      <p className="text-xs font-medium text-slate-900 dark:text-[#f0f0ff] truncate">{receiver?.name}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-[#6666a0] truncate">{receiver?.email}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => cancelRequest(req.id)}
                     disabled={actionLoading === req.id}
-                    className="btn-secondary text-xs py-1 px-2 text-[#9898b8] hover:text-red-400"
+                    className="btn-secondary text-xs py-1 px-2 text-slate-500 dark:text-[#9898b8] hover:text-red-500 dark:hover:text-red-400"
                   >
                     Cancel
                   </button>

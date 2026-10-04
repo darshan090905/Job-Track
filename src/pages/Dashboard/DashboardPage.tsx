@@ -466,17 +466,17 @@ export default function DashboardPage() {
 
         {/* Right column: Community Scoreboard & Motivation */}
         <div className="flex flex-col gap-6">
-          <div className="card bg-gradient-to-br from-indigo-950/40 via-[#1c1c28] to-[#1c1c28] border-indigo-500/30 p-5">
+          <div className="card bg-gradient-to-br from-indigo-50/90 via-purple-50/50 to-white dark:from-indigo-950/40 dark:via-[#1c1c28] dark:to-[#1c1c28] border-indigo-200 dark:border-indigo-500/30 p-5 shadow-sm dark:shadow-none">
             <div className="flex items-center justify-between mb-3">
-              <span className="p-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              <span className="p-2 rounded-xl bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30">
                 <Award className="w-5 h-5" />
               </span>
-              <span className="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-500/30">
                 Leaderboard
               </span>
             </div>
-            <h3 className="font-bold text-[#f0f0ff] text-base mb-1">Earn Scout Points & Badges</h3>
-            <p className="text-xs text-[#9898b8] mb-4">
+            <h3 className="font-bold text-slate-900 dark:text-[#f0f0ff] text-base mb-1">Earn Scout Points & Badges</h3>
+            <p className="text-xs text-slate-600 dark:text-[#9898b8] mb-4">
               Help fellow candidates! Share verified job links (+10 pts) and walk-in drives (+15 pts) to top the community scoreboard.
             </p>
             <Link

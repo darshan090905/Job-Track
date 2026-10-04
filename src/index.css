@@ -249,39 +249,58 @@
 }
 
 /* Light theme general overrides for hardcoded background & border utility classes */
-[data-theme="light"] .bg-\[\#12121a\] {
-  background-color: #ffffff !important;
-}
-
-[data-theme="light"] .bg-\[\#171723\] {
+[data-theme="light"] .bg-\[\#12121a\],
+[data-theme="light"] [class*="bg-[#12121a]"] {
   background-color: #f8fafc !important;
 }
 
-[data-theme="light"] .bg-\[\#171726\] {
+[data-theme="light"] .bg-\[\#171723\],
+[data-theme="light"] [class*="bg-[#171723]"] {
   background-color: #f8fafc !important;
 }
 
-[data-theme="light"] .bg-\[\#1c1c28\] {
+[data-theme="light"] .bg-\[\#171726\],
+[data-theme="light"] [class*="bg-[#171726]"] {
+  background-color: #f8fafc !important;
+}
+
+[data-theme="light"] .bg-\[\#1a1a28\],
+[data-theme="light"] [class*="bg-[#1a1a28]"] {
   background-color: #ffffff !important;
 }
 
-[data-theme="light"] .bg-\[\#232334\] {
+[data-theme="light"] .bg-\[\#1c1c28\],
+[data-theme="light"] [class*="bg-[#1c1c28]"] {
+  background-color: #ffffff !important;
+}
+
+[data-theme="light"] .bg-\[\#232334\],
+[data-theme="light"] [class*="bg-[#232334]"] {
   background-color: #f1f5f9 !important;
 }
 
-[data-theme="light"] .border-\[\#2a2a3d\] {
+[data-theme="light"] .bg-\[\#2a2a3d\],
+[data-theme="light"] [class*="bg-[#2a2a3d]"] {
+  background-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .border-\[\#2a2a3d\],
+[data-theme="light"] [class*="border-[#2a2a3d]"] {
   border-color: #e2e8f0 !important;
 }
 
-[data-theme="light"] .text-\[\#f0f0ff\] {
+[data-theme="light"] .text-\[\#f0f0ff\],
+[data-theme="light"] [class*="text-[#f0f0ff]"] {
   color: #0f172a !important;
 }
 
-[data-theme="light"] .text-\[\#9898b8\] {
+[data-theme="light"] .text-\[\#9898b8\],
+[data-theme="light"] [class*="text-[#9898b8]"] {
   color: #64748b !important;
 }
 
-[data-theme="light"] .text-\[\#6666a0\] {
+[data-theme="light"] .text-\[\#6666a0\],
+[data-theme="light"] [class*="text-[#6666a0]"] {
   color: #94a3b8 !important;
 }
 
