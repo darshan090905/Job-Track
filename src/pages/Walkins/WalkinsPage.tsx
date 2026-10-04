@@ -11,6 +11,7 @@ import { WalkinDrive, Resume, WalkinChecklist } from '../../types';
 import { VISIBILITY_LABELS, DEFAULT_WALKIN_CHECKLIST } from '../../utils/constants';
 import { formatDate, downloadCSV, isDateToday, isDateTomorrow } from '../../utils/helpers';
 import WalkinModal from '../../components/WalkinModal';
+import ResumeViewerModal from '../../components/ResumeViewerModal';
 
 export default function WalkinsPage() {
   const { user } = useAuth();
@@ -22,6 +23,7 @@ export default function WalkinsPage() {
   const [showAdd, setShowAdd] = useState(searchParams.get('add') === 'true');
   const [editWalkin, setEditWalkin] = useState<WalkinDrive | null>(null);
   const [detailWalkin, setDetailWalkin] = useState<WalkinDrive | null>(null);
+  const [viewingResume, setViewingResume] = useState<Resume | null>(null);
   const [checklist, setChecklist] = useState<WalkinChecklist[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -53,14 +55,12 @@ export default function WalkinsPage() {
     setResumes((data || []) as Resume[]);
   }
 
-  async function viewResume(resume: Resume) {
+  function viewResume(resume: Resume) {
     if (!resume.file_path) {
       toast('Resume file not found', 'error');
       return;
     }
-    const { data } = await supabase.storage.from('resumes').createSignedUrl(resume.file_path, 60);
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
-    else toast('Failed to open resume', 'error');
+    setViewingResume(resume);
   }
 
   async function downloadResume(resume: Resume) {
@@ -340,6 +340,14 @@ export default function WalkinsPage() {
           resumes={resumes}
           onClose={() => { setShowAdd(false); setEditWalkin(null); }}
           onSaved={() => { setShowAdd(false); setEditWalkin(null); loadAll(); }}
+        />
+      )}
+
+      {/* Resume Viewer Modal */}
+      {viewingResume && (
+        <ResumeViewerModal
+          resume={viewingResume}
+          onClose={() => setViewingResume(null)}
         />
       )}
 

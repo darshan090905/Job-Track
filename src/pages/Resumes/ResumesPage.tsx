@@ -8,6 +8,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { Resume } from '../../types';
 import { formatDate } from '../../utils/helpers';
+import ResumeViewerModal from '../../components/ResumeViewerModal';
 
 export default function ResumesPage() {
   const { user } = useAuth();
@@ -17,6 +18,7 @@ export default function ResumesPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [viewingResume, setViewingResume] = useState<Resume | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({ name: '', version: '', description: '' });
@@ -84,10 +86,12 @@ export default function ResumesPage() {
     loadResumes();
   }
 
-  async function viewResume(resume: Resume) {
-    const { data } = await supabase.storage.from('resumes').createSignedUrl(resume.file_path, 60);
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
-    else toast('Failed to open resume', 'error');
+  function viewResume(resume: Resume) {
+    if (!resume.file_path) {
+      toast('Resume file not found', 'error');
+      return;
+    }
+    setViewingResume(resume);
   }
 
   async function downloadResume(resume: Resume) {
@@ -215,6 +219,14 @@ export default function ResumesPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Resume Viewer Modal */}
+      {viewingResume && (
+        <ResumeViewerModal
+          resume={viewingResume}
+          onClose={() => setViewingResume(null)}
+        />
       )}
     </div>
   );

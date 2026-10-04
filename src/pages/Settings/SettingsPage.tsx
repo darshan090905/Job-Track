@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import {
-  User, Mail, Bell, Plus, Trash2, Loader2, Save, Camera, X
-} from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { NotificationEmail } from '../../types';
+import {
+  User, Mail, Bell, Plus, Trash2, Loader2, Save, Camera, X, Sun, Moon
+} from 'lucide-react';
 
 export default function SettingsPage() {
   const { user, profile, updateProfile } = useAuth();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
 
   const [name, setName] = useState(profile?.name || '');
   const [savingProfile, setSavingProfile] = useState(false);
@@ -93,8 +95,52 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-2xl mx-auto">
       <h1 className="page-title mb-6">Settings</h1>
+
+      {/* Appearance & Theme */}
+      <div className="card mb-6">
+        <h2 className="section-title mb-1">Appearance & Theme</h2>
+        <p className="text-xs sm:text-sm text-[#9898b8] mb-4">Choose your preferred workspace theme.</p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setTheme('dark')}
+            className={`p-4 rounded-xl border flex flex-col items-center gap-2.5 transition-all text-left ${
+              theme === 'dark'
+                ? 'border-indigo-500 bg-indigo-600/10 ring-2 ring-indigo-500/30'
+                : 'border-[#2a2a3d] bg-[#12121a] hover:border-indigo-500/40'
+            }`}
+          >
+            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-amber-400">
+              <Moon className="w-5 h-5" />
+            </div>
+            <div className="text-center">
+              <p className="font-semibold text-sm text-[#f0f0ff]">Dark Theme</p>
+              <p className="text-[11px] text-[#9898b8]">Sleek & comfortable</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTheme('light')}
+            className={`p-4 rounded-xl border flex flex-col items-center gap-2.5 transition-all text-left ${
+              theme === 'light'
+                ? 'border-indigo-500 bg-indigo-600/10 ring-2 ring-indigo-500/30'
+                : 'border-[#2a2a3d] bg-[#12121a] hover:border-indigo-500/40'
+            }`}
+          >
+            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+              <Sun className="w-5 h-5" />
+            </div>
+            <div className="text-center">
+              <p className="font-semibold text-sm text-[#f0f0ff]">Light Theme</p>
+              <p className="text-[11px] text-[#9898b8]">Clean white & crisp</p>
+            </div>
+          </button>
+        </div>
+      </div>
 
       {/* Profile */}
       <div className="card mb-6">

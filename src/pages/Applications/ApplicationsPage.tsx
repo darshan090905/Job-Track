@@ -14,6 +14,7 @@ import {
 import { formatDate, downloadCSV, debounce } from '../../utils/helpers';
 import JobModal from '../../components/JobModal';
 import JobDetailModal from '../../components/JobDetailModal';
+import ResumeViewerModal from '../../components/ResumeViewerModal';
 
 export default function ApplicationsPage() {
   const { user } = useAuth();
@@ -26,6 +27,7 @@ export default function ApplicationsPage() {
   const [showAddModal, setShowAddModal] = useState(searchParams.get('add') === 'true');
   const [editJob, setEditJob] = useState<Job | null>(null);
   const [detailJob, setDetailJob] = useState<Job | null>(null);
+  const [viewingResume, setViewingResume] = useState<Resume | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   // Filters & search
@@ -59,14 +61,12 @@ export default function ApplicationsPage() {
     setLoading(false);
   }
 
-  async function viewResume(resume: Resume) {
+  function viewResume(resume: Resume) {
     if (!resume.file_path) {
       toast('Resume file not found', 'error');
       return;
     }
-    const { data } = await supabase.storage.from('resumes').createSignedUrl(resume.file_path, 60);
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
-    else toast('Failed to open resume', 'error');
+    setViewingResume(resume);
   }
 
   async function downloadResume(resume: Resume) {
@@ -372,6 +372,14 @@ export default function ApplicationsPage() {
           onEdit={j => { setDetailJob(null); setEditJob(j); }}
           onDeleted={() => { setDetailJob(null); loadJobs(); }}
           onUpdated={loadJobs}
+        />
+      )}
+
+      {/* Resume Viewer Modal */}
+      {viewingResume && (
+        <ResumeViewerModal
+          resume={viewingResume}
+          onClose={() => setViewingResume(null)}
         />
       )}
 

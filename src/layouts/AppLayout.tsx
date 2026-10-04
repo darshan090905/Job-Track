@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Briefcase, Rss, MapPin, FileText,
-  BarChart2, Users, Settings, LogOut, Menu, X
+  BarChart2, Users, Settings, LogOut, Menu, X, Sun, Moon
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../context/ThemeContext';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -19,6 +20,7 @@ const navItems = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -33,11 +35,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const Sidebar = () => (
     <nav className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-[#2a2a3d]">
-        <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-          <Briefcase className="w-4 h-4 text-white" />
+      <div className="flex items-center justify-between px-4 py-5 border-b border-[#2a2a3d]">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+            <Briefcase className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-lg font-bold text-[#f0f0ff]">JobTrack</span>
         </div>
-        <span className="text-lg font-bold text-[#f0f0ff]">JobTrack</span>
+        <button
+          onClick={toggleTheme}
+          className="p-1.5 rounded-lg text-[#9898b8] hover:text-[#f0f0ff] hover:bg-[#232334] transition-colors"
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+        >
+          {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+        </button>
       </div>
 
       {/* Nav links */}
@@ -90,10 +101,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
           <aside className="absolute left-0 top-0 h-full w-64 bg-[#12121a] border-r border-[#2a2a3d] flex flex-col">
             <div className="flex items-center justify-between px-4 py-4 border-b border-[#2a2a3d]">
-              <span className="text-lg font-bold text-[#f0f0ff]">JobTrack</span>
-              <button onClick={() => setMobileOpen(false)} className="text-[#9898b8] hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+                  <Briefcase className="w-3.5 h-3.5 text-white" />
+                </div>
+                <span className="text-lg font-bold text-[#f0f0ff]">JobTrack</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleTheme}
+                  className="p-1.5 rounded-lg text-[#9898b8] hover:text-[#f0f0ff] hover:bg-[#232334] transition-colors"
+                  title="Toggle Theme"
+                >
+                  {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+                </button>
+                <button onClick={() => setMobileOpen(false)} className="text-[#9898b8] hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-1">
               {navItems.map(({ to, icon: Icon, label }) => (
@@ -128,9 +153,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
             <span className="font-bold text-[#f0f0ff]">JobTrack</span>
           </div>
-          <button onClick={() => setMobileOpen(true)} className="text-[#9898b8] hover:text-white p-1">
-            <Menu className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 rounded-lg text-[#9898b8] hover:text-[#f0f0ff] hover:bg-[#232334] transition-colors"
+              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+            </button>
+            <button onClick={() => setMobileOpen(true)} className="text-[#9898b8] hover:text-white p-1">
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
         </header>
 
         {/* Page content */}
@@ -143,3 +177,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+

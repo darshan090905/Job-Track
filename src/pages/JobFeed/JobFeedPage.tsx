@@ -14,7 +14,7 @@ import Scoreboard from '../../components/Scoreboard';
 import JobModal from '../../components/JobModal';
 import WalkinModal from '../../components/WalkinModal';
 
-type FeedTab = 'jobs' | 'walkins' | 'scoreboard';
+type FeedTab = 'all' | 'jobs' | 'walkins' | 'scoreboard';
 type VisibilityTab = 'everyone' | 'friends';
 
 export default function JobFeedPage() {
@@ -22,8 +22,11 @@ export default function JobFeedPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
 
+  const initialTab = searchParams.get('tab');
   const [feedTab, setFeedTab] = useState<FeedTab>(
-    searchParams.get('tab') === 'scoreboard' ? 'scoreboard' : 'jobs'
+    initialTab === 'scoreboard' ? 'scoreboard' :
+    initialTab === 'jobs' ? 'jobs' :
+    initialTab === 'walkins' ? 'walkins' : 'all'
   );
   const [visTab, setVisTab] = useState<VisibilityTab>(searchParams.get('tab') === 'friends' ? 'friends' : 'everyone');
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -266,6 +269,9 @@ export default function JobFeedPage() {
     else toast('Walk-in saved!', 'success');
   }
 
+  const totalAllItems = jobs.length + walkins.length;
+  const filteredAllTotal = filteredJobs.length + filteredWalkins.length;
+
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -287,9 +293,9 @@ export default function JobFeedPage() {
         </div>
       </div>
 
-      {/* Main Tabs (Jobs / Walk-ins / Scoreboard) */}
+      {/* Main Tabs (All / Jobs / Walk-ins / Scoreboard) */}
       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
-        {(['jobs', 'walkins', 'scoreboard'] as FeedTab[]).map(t => (
+        {(['all', 'jobs', 'walkins', 'scoreboard'] as FeedTab[]).map(t => (
           <button
             key={t}
             onClick={() => setFeedTab(t)}
@@ -301,11 +307,13 @@ export default function JobFeedPage() {
                 : 'bg-[#1c1c28] text-[#9898b8] border border-[#2a2a3d] hover:border-indigo-500/40 hover:text-[#f0f0ff]'
             }`}
           >
+            {t === 'all' && <Building2 className="w-3.5 h-3.5" />}
             {t === 'jobs' && <Briefcase className="w-3.5 h-3.5" />}
             {t === 'walkins' && <MapPin className="w-3.5 h-3.5" />}
             {t === 'scoreboard' && <Trophy className="w-3.5 h-3.5 text-amber-900" />}
             <span>
-              {t === 'jobs' ? `Jobs (${jobs.length})` :
+              {t === 'all' ? `All Updates (${totalAllItems})` :
+               t === 'jobs' ? `Jobs (${jobs.length})` :
                t === 'walkins' ? `Walk-ins (${walkins.length})` :
                '🏆 Scoreboard & Ranks'}
             </span>
@@ -430,15 +438,13 @@ export default function JobFeedPage() {
                   {locations.map(l => <option key={l} value={l!}>{l}</option>)}
                 </select>
               </div>
-              {feedTab === 'jobs' && (
-                <div className="input-group">
-                  <label className="text-xs">Source</label>
-                  <select value={filterSource} onChange={e => setFilterSource(e.target.value)} className="text-xs py-1.5">
-                    <option value="">All</option>
-                    {JOB_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-              )}
+              <div className="input-group">
+                <label className="text-xs">Source</label>
+                <select value={filterSource} onChange={e => setFilterSource(e.target.value)} className="text-xs py-1.5">
+                  <option value="">All</option>
+                  {JOB_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
               <div className="input-group">
                 <label className="text-xs">Date</label>
                 <select value={filterDate} onChange={e => setFilterDate(e.target.value)} className="text-xs py-1.5">
@@ -454,121 +460,151 @@ export default function JobFeedPage() {
           {/* Feed Content */}
           {loading ? (
             <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-400" /></div>
-          ) : feedTab === 'jobs' ? (
-            filteredJobs.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-state-icon"><Briefcase className="w-7 h-7" /></div>
-                <p className="text-[#f0f0ff] font-medium">No shared jobs available</p>
-                <p className="text-[#9898b8] text-sm">{visTab === 'friends' ? 'No friends have shared jobs yet.' : 'Be the first to share a job!'}</p>
-                <button onClick={() => setShowAddJobModal(true)} className="btn-primary text-xs mt-2">
+          ) : (feedTab === 'all' && filteredAllTotal === 0) || (feedTab === 'jobs' && filteredJobs.length === 0) || (feedTab === 'walkins' && filteredWalkins.length === 0) ? (
+            <div className="empty-state">
+              <div className="empty-state-icon"><Briefcase className="w-7 h-7" /></div>
+              <p className="text-[#f0f0ff] font-medium">No opportunities available right now</p>
+              <p className="text-[#9898b8] text-sm">{visTab === 'friends' ? 'No friends have shared updates yet.' : 'Be the first to share an opportunity!'}</p>
+              <div className="flex gap-2 mt-2">
+                <button onClick={() => setShowAddJobModal(true)} className="btn-primary text-xs">
                   <Plus className="w-4 h-4" /> Share a Job
                 </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredJobs.map(job => {
-                  const profile = job.profile as Profile | undefined;
-                  return (
-                    <div key={job.id} className="card flex flex-col justify-between gap-3 hover:border-indigo-500/30 transition-all">
-                      <div>
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                            <span className="text-indigo-300 font-bold">{job.company.charAt(0)}</span>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-[#f0f0ff] truncate text-sm sm:text-base">{job.company}</p>
-                            <p className="text-xs sm:text-sm text-[#9898b8] truncate">{job.job_title}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 text-xs text-[#9898b8] mt-3">
-                          {job.location && <span className="flex items-center gap-1 bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]"><MapPin className="w-3 h-3 text-indigo-400" />{job.location}</span>}
-                          {job.source && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">🔗 {job.source}</span>}
-                          {job.salary && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">💰 {job.salary}</span>}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-[11px] text-[#6666a0] mb-2.5 pt-2 border-t border-[#2a2a3d]/50 flex items-center justify-between">
-                          {profile && <span>Shared by <span className="text-indigo-400 font-medium">{profile.name}</span></span>}
-                          <span>{formatDate(job.created_at)}</span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <a href={job.job_url} target="_blank" rel="noopener noreferrer" className="btn-primary text-xs py-2 justify-center">
-                            <ExternalLink className="w-3.5 h-3.5" /> Open
-                          </a>
-                          <button onClick={() => saveJobToMyApps(job)} className="btn-secondary text-xs py-2 justify-center">
-                            <BookmarkPlus className="w-3.5 h-3.5" /> Save
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )
-          ) : (
-            filteredWalkins.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-state-icon"><MapPin className="w-7 h-7" /></div>
-                <p className="text-[#f0f0ff] font-medium">No shared walk-ins</p>
-                <p className="text-[#9898b8] text-sm">No upcoming walk-in drives have been shared yet.</p>
-                <button onClick={() => setShowAddWalkinModal(true)} className="btn-secondary text-xs mt-2 text-cyan-300">
-                  <MapPin className="w-4 h-4" /> Share a Walk-in Drive
+                <button onClick={() => setShowAddWalkinModal(true)} className="btn-secondary text-xs text-cyan-300">
+                  <MapPin className="w-4 h-4" /> Share Walk-in
                 </button>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredWalkins.map(w => {
-                  const profile = w.profile as Profile | undefined;
-                  return (
-                    <div key={w.id} className="card flex flex-col justify-between gap-3 hover:border-cyan-500/30 transition-all">
-                      <div>
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
-                            <MapPin className="w-4 h-4 text-cyan-400" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-[#f0f0ff] truncate text-sm sm:text-base">{w.company}</p>
-                            <p className="text-xs sm:text-sm text-[#9898b8] truncate">{w.job_title}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 text-xs text-[#9898b8] mt-3">
-                          <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d] text-cyan-300">📅 {formatDate(w.date)}</span>
-                          {w.start_time && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">🕐 {w.start_time}</span>}
-                          {w.location && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">📍 {w.location}</span>}
-                        </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-8">
+              {/* Jobs Section (shown when feedTab is 'all' or 'jobs') */}
+              {(feedTab === 'all' || feedTab === 'jobs') && filteredJobs.length > 0 && (
+                <div>
+                  {feedTab === 'all' && (
+                    <div className="flex items-center justify-between mb-3.5">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="w-4 h-4 text-indigo-400" />
+                        <h2 className="section-title text-base sm:text-lg">Job Openings</h2>
+                        <span className="text-xs text-[#9898b8] bg-[#1c1c28] border border-[#2a2a3d] px-2 py-0.5 rounded-full">{filteredJobs.length}</span>
                       </div>
-
-                      <div>
-                        {profile && (
-                          <div className="text-[11px] text-[#6666a0] mb-2.5 pt-2 border-t border-[#2a2a3d]/50">
-                            Shared by <span className="text-indigo-400 font-medium">{profile.name}</span>
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-2 gap-2">
-                          {w.registration_url ? (
-                            <a href={w.registration_url} target="_blank" rel="noopener noreferrer" className="btn-primary text-xs py-2 justify-center">
-                              <ExternalLink className="w-3.5 h-3.5" /> Register
-                            </a>
-                          ) : (
-                            <div className="text-xs text-[#9898b8] flex items-center justify-center bg-[#12121a] rounded-lg border border-[#2a2a3d]">
-                              Direct Walk-in
-                            </div>
-                          )}
-                          <button onClick={() => saveWalkinToMine(w)} className="btn-secondary text-xs py-2 justify-center">
-                            <BookmarkPlus className="w-3.5 h-3.5" /> Save
-                          </button>
-                        </div>
-                      </div>
+                      <button onClick={() => setFeedTab('jobs')} className="text-xs text-indigo-400 hover:text-indigo-300">
+                        View only jobs &rarr;
+                      </button>
                     </div>
-                  );
-                })}
-              </div>
-            )
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {filteredJobs.map(job => {
+                      const profile = job.profile as Profile | undefined;
+                      return (
+                        <div key={job.id} className="card flex flex-col justify-between gap-3 hover:border-indigo-500/30 transition-all">
+                          <div>
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                                <span className="text-indigo-300 font-bold">{job.company.charAt(0)}</span>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-[#f0f0ff] truncate text-sm sm:text-base">{job.company}</p>
+                                <p className="text-xs sm:text-sm text-[#9898b8] truncate">{job.job_title}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 text-xs text-[#9898b8] mt-3">
+                              {job.location && <span className="flex items-center gap-1 bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]"><MapPin className="w-3 h-3 text-indigo-400" />{job.location}</span>}
+                              {job.source && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">🔗 {job.source}</span>}
+                              {job.salary && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">💰 {job.salary}</span>}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="text-[11px] text-[#6666a0] mb-2.5 pt-2 border-t border-[#2a2a3d]/50 flex items-center justify-between">
+                              {profile && <span>Shared by <span className="text-indigo-400 font-medium">{profile.name}</span></span>}
+                              <span>{formatDate(job.created_at)}</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <a href={job.job_url} target="_blank" rel="noopener noreferrer" className="btn-primary text-xs py-2 justify-center">
+                                <ExternalLink className="w-3.5 h-3.5" /> Open
+                              </a>
+                              <button onClick={() => saveJobToMyApps(job)} className="btn-secondary text-xs py-2 justify-center">
+                                <BookmarkPlus className="w-3.5 h-3.5" /> Save
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Walk-ins Section (shown when feedTab is 'all' or 'walkins') */}
+              {(feedTab === 'all' || feedTab === 'walkins') && filteredWalkins.length > 0 && (
+                <div>
+                  {feedTab === 'all' && (
+                    <div className="flex items-center justify-between mb-3.5">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-cyan-400" />
+                        <h2 className="section-title text-base sm:text-lg">Walk-in Drives</h2>
+                        <span className="text-xs text-[#9898b8] bg-[#1c1c28] border border-[#2a2a3d] px-2 py-0.5 rounded-full">{filteredWalkins.length}</span>
+                      </div>
+                      <button onClick={() => setFeedTab('walkins')} className="text-xs text-cyan-400 hover:text-cyan-300">
+                        View only walk-ins &rarr;
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {filteredWalkins.map(w => {
+                      const profile = w.profile as Profile | undefined;
+                      return (
+                        <div key={w.id} className="card flex flex-col justify-between gap-3 hover:border-cyan-500/30 transition-all">
+                          <div>
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                                <MapPin className="w-4 h-4 text-cyan-400" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-[#f0f0ff] truncate text-sm sm:text-base">{w.company}</p>
+                                <p className="text-xs sm:text-sm text-[#9898b8] truncate">{w.job_title}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 text-xs text-[#9898b8] mt-3">
+                              <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d] text-cyan-300">📅 {formatDate(w.date)}</span>
+                              {w.start_time && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">🕐 {w.start_time}</span>}
+                              {w.location && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">📍 {w.location}</span>}
+                            </div>
+                          </div>
+
+                          <div>
+                            {profile && (
+                              <div className="text-[11px] text-[#6666a0] mb-2.5 pt-2 border-t border-[#2a2a3d]/50">
+                                Shared by <span className="text-indigo-400 font-medium">{profile.name}</span>
+                              </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-2">
+                              {w.registration_url ? (
+                                <a href={w.registration_url} target="_blank" rel="noopener noreferrer" className="btn-primary text-xs py-2 justify-center">
+                                  <ExternalLink className="w-3.5 h-3.5" /> Register
+                                </a>
+                              ) : (
+                                <div className="text-xs text-[#9898b8] flex items-center justify-center bg-[#12121a] rounded-lg border border-[#2a2a3d]">
+                                  Direct Walk-in
+                                </div>
+                              )}
+                              <button onClick={() => saveWalkinToMine(w)} className="btn-secondary text-xs py-2 justify-center">
+                                <BookmarkPlus className="w-3.5 h-3.5" /> Save
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </>
       )}

@@ -9,6 +9,7 @@ import { useToast } from '../hooks/useToast';
 import { Job, Resume, ApplicationEvent } from '../types';
 import { JOB_STATUS_COLORS, JOB_STATUS_LABELS, VISIBILITY_LABELS, EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '../utils/constants';
 import { formatDate } from '../utils/helpers';
+import ResumeViewerModal from './ResumeViewerModal';
 
 interface Props {
   job: Job;
@@ -27,6 +28,7 @@ export default function JobDetailModal({ job, resumes, onClose, onEdit, onDelete
   const [addingEvent, setAddingEvent] = useState(false);
   const [newEvent, setNewEvent] = useState({ event_type: 'custom', event_date: new Date().toISOString().split('T')[0], notes: '' });
   const [deleting, setDeleting] = useState(false);
+  const [viewingResume, setViewingResume] = useState<Resume | null>(null);
 
   useEffect(() => {
     loadEvents();
@@ -74,14 +76,12 @@ export default function JobDetailModal({ job, resumes, onClose, onEdit, onDelete
 
   const resume = resumes.find(r => r.id === job.resume_id) || (job.resume as unknown as Resume);
 
-  async function viewResume() {
+  function viewResume() {
     if (!resume?.file_path) {
       toast('Resume file not found', 'error');
       return;
     }
-    const { data } = await supabase.storage.from('resumes').createSignedUrl(resume.file_path, 60);
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
-    else toast('Failed to open resume', 'error');
+    setViewingResume(resume);
   }
 
   async function downloadResume() {
@@ -276,6 +276,14 @@ export default function JobDetailModal({ job, resumes, onClose, onEdit, onDelete
           </div>
         </div>
       </div>
+
+      {/* Resume Viewer Modal */}
+      {viewingResume && (
+        <ResumeViewerModal
+          resume={viewingResume}
+          onClose={() => setViewingResume(null)}
+        />
+      )}
     </div>
   );
 }
