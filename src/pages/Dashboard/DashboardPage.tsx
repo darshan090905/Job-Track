@@ -142,77 +142,83 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="page-title">
+          <h1 className="page-title text-xl sm:text-2xl font-bold">
             Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'},{' '}
             <span className="text-indigo-400">{profile?.name?.split(' ')[0] || 'there'}</span> 👋
           </h1>
-          <p className="page-subtitle mt-1">Here's your job search overview</p>
+          <p className="page-subtitle mt-0.5">Here's your job search & community overview</p>
         </div>
-        <div className="flex gap-2">
-          <Link to="/applications?add=true" className="btn-primary">
+        <div className="flex items-center gap-2">
+          <Link to="/job-feed?tab=scoreboard" className="btn-secondary text-xs sm:text-sm py-2 text-amber-300 border-amber-500/30">
+            🏆 Scoreboard
+          </Link>
+          <Link to="/applications?add=true" className="btn-primary text-xs sm:text-sm py-2 px-3 sm:px-4">
             <Plus className="w-4 h-4" /> Add Job
           </Link>
         </div>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-6 sm:mb-8">
         {statCards.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="stat-card">
+          <div key={label} className="stat-card p-3 sm:p-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#9898b8] font-medium">{label}</span>
+              <span className="text-[11px] sm:text-xs text-[#9898b8] font-medium">{label}</span>
               <div className={`w-7 h-7 rounded-lg ${bg} flex items-center justify-center`}>
                 <Icon className={`w-3.5 h-3.5 ${color}`} />
               </div>
             </div>
-            <p className={`text-2xl font-bold mt-1 ${color}`}>{loading ? '—' : value}</p>
+            <p className={`text-xl sm:text-2xl font-bold mt-1 ${color}`}>{loading ? '—' : value}</p>
           </div>
         ))}
       </div>
 
       {/* Quick Actions */}
-      <div className="flex flex-wrap gap-2 mb-8">
-        <Link to="/applications?add=true" className="btn-secondary text-sm">
-          <Plus className="w-3.5 h-3.5" /> Add Job
+      <div className="flex items-center gap-2 mb-6 sm:mb-8 overflow-x-auto pb-1">
+        <Link to="/applications?add=true" className="btn-secondary text-xs sm:text-sm py-2 flex-shrink-0">
+          <Plus className="w-3.5 h-3.5 text-indigo-400" /> Add Job
         </Link>
-        <Link to="/walkins?add=true" className="btn-secondary text-sm">
-          <MapPin className="w-3.5 h-3.5" /> Add Walk-in
+        <Link to="/walkins?add=true" className="btn-secondary text-xs sm:text-sm py-2 flex-shrink-0">
+          <MapPin className="w-3.5 h-3.5 text-cyan-400" /> Add Walk-in
         </Link>
-        <Link to="/resumes" className="btn-secondary text-sm">
-          <Briefcase className="w-3.5 h-3.5" /> Upload Resume
+        <Link to="/job-feed?tab=scoreboard" className="btn-secondary text-xs sm:text-sm py-2 flex-shrink-0 text-amber-300 border-amber-500/30">
+          🏆 Community Leaderboard
+        </Link>
+        <Link to="/resumes" className="btn-secondary text-xs sm:text-sm py-2 flex-shrink-0">
+          <Briefcase className="w-3.5 h-3.5 text-purple-400" /> Resumes
         </Link>
       </div>
 
       {/* Upcoming Walk-ins Banner */}
       {upcomingWalkins.length > 0 && (
-        <div className="mb-8 flex flex-col gap-3">
+        <div className="mb-6 sm:mb-8 flex flex-col gap-3">
           {upcomingWalkins.map(w => (
-            <div key={w.id} className={`rounded-xl p-4 border flex items-start gap-4 ${
+            <div key={w.id} className={`rounded-xl p-3 sm:p-4 border flex items-start gap-3 sm:gap-4 ${
               isDateToday(w.date)
                 ? 'bg-amber-500/10 border-amber-500/30'
                 : 'bg-red-500/10 border-red-500/30'
             }`}>
               <AlertTriangle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isDateToday(w.date) ? 'text-amber-400' : 'text-red-400'}`} />
               <div className="flex-1 min-w-0">
-                <p className={`font-semibold text-sm ${isDateToday(w.date) ? 'text-amber-300' : 'text-red-300'}`}>
+                <p className={`font-semibold text-xs sm:text-sm ${isDateToday(w.date) ? 'text-amber-300' : 'text-red-300'}`}>
                   🚨 WALK-IN {isDateToday(w.date) ? 'TODAY' : 'TOMORROW'}
                 </p>
-                <p className="text-[#f0f0ff] font-medium mt-0.5">{w.company} — {w.job_title}</p>
-                <div className="flex flex-wrap gap-3 mt-1 text-sm text-[#9898b8]">
+                <p className="text-[#f0f0ff] font-medium mt-0.5 text-sm sm:text-base truncate">{w.company} — {w.job_title}</p>
+                <div className="flex flex-wrap gap-2 sm:gap-3 mt-1 text-xs sm:text-sm text-[#9898b8]">
                   {w.start_time && <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{w.start_time}</span>}
                   {w.location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{w.location}</span>}
-                  {w.resume && <span>Resume: {w.resume.name}</span>}
                 </div>
               </div>
-              <Link to={`/walkins/${w.id}`} className="btn-secondary text-xs flex-shrink-0">View</Link>
+              <Link to="/walkins" className="btn-secondary text-xs flex-shrink-0 py-1.5 px-2.5">View</Link>
             </div>
           ))}
         </div>
       )}
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Latest Jobs from Everyone */}

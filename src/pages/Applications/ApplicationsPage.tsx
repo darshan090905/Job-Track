@@ -145,65 +145,74 @@ export default function ApplicationsPage() {
   const statuses: JobStatus[] = ['saved', 'applied', 'assessment', 'interview', 'offer', 'rejected', 'withdrawn'];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="page-title">My Applications</h1>
-          <p className="page-subtitle mt-1">{jobs.length} total • {filtered.length} showing</p>
+          <h1 className="page-title text-xl sm:text-2xl font-bold">My Applications</h1>
+          <p className="page-subtitle mt-0.5">{jobs.length} total • {filtered.length} showing</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={exportCSV} className="btn-secondary text-sm">
+        <div className="flex items-center gap-2">
+          <button onClick={exportCSV} className="btn-secondary text-xs sm:text-sm py-2 px-3 flex-1 sm:flex-initial justify-center">
             <Download className="w-3.5 h-3.5" /> Export
           </button>
-          <button onClick={() => setShowAddModal(true)} className="btn-primary">
+          <button onClick={() => setShowAddModal(true)} className="btn-primary text-xs sm:text-sm py-2 px-3 sm:px-4 flex-1 sm:flex-initial justify-center">
             <Plus className="w-4 h-4" /> Add Job
           </button>
         </div>
       </div>
 
       {/* Search & Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6666a0]" />
+      <div className="flex flex-col sm:flex-row gap-2.5 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6666a0]" />
           <input
             type="text"
             placeholder="Search company, role, resume, notes..."
             onChange={e => debouncedSearch(e.target.value)}
-            className="w-full pl-9 text-sm"
+            className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-[#171723] border border-[#2a2a3d] focus:border-indigo-500 rounded-xl text-[#f0f0ff] placeholder-[#6666a0]"
           />
         </div>
-        <button onClick={() => setShowFilters(!showFilters)} className={`btn-secondary text-sm ${showFilters ? 'border-indigo-500 text-indigo-300' : ''}`}>
-          <Filter className="w-3.5 h-3.5" /> Filters {(statusFilter !== 'all' || sourceFilter !== 'all') && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 ml-1" />}
-        </button>
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="text-sm">
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="company_az">Company A-Z</option>
-          <option value="company_za">Company Z-A</option>
-          <option value="role_az">Role A-Z</option>
-          <option value="followup">Follow-up Date</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`btn-secondary text-xs sm:text-sm py-2 flex-1 sm:flex-initial justify-center ${showFilters ? 'border-indigo-500 text-indigo-300' : ''}`}
+          >
+            <Filter className="w-3.5 h-3.5" /> Filters {(statusFilter !== 'all' || sourceFilter !== 'all') && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 ml-1" />}
+          </button>
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value)}
+            className="text-xs sm:text-sm py-2 bg-[#1c1c28] border border-[#2a2a3d] rounded-lg text-[#f0f0ff] flex-1 sm:flex-initial"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="company_az">Company A-Z</option>
+            <option value="company_za">Company Z-A</option>
+            <option value="role_az">Role A-Z</option>
+            <option value="followup">Follow-up Date</option>
+          </select>
+        </div>
       </div>
 
       {showFilters && (
-        <div className="card mb-4 flex flex-wrap gap-4">
-          <div className="flex flex-col gap-1.5 min-w-[140px]">
-            <label>Status</label>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="text-sm">
+        <div className="card mb-4 flex flex-wrap gap-4 p-4">
+          <div className="flex flex-col gap-1.5 min-w-[140px] flex-1">
+            <label className="text-xs">Status</label>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="text-xs py-1.5">
               <option value="all">All Statuses</option>
               {statuses.map(s => <option key={s} value={s}>{JOB_STATUS_LABELS[s]}</option>)}
             </select>
           </div>
-          <div className="flex flex-col gap-1.5 min-w-[140px]">
-            <label>Source</label>
-            <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className="text-sm">
+          <div className="flex flex-col gap-1.5 min-w-[140px] flex-1">
+            <label className="text-xs">Source</label>
+            <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className="text-xs py-1.5">
               <option value="all">All Sources</option>
               {JOB_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div className="flex items-end">
-            <button onClick={() => { setStatusFilter('all'); setSourceFilter('all'); }} className="btn-secondary text-sm">
+            <button onClick={() => { setStatusFilter('all'); setSourceFilter('all'); }} className="btn-secondary text-xs py-1.5">
               <X className="w-3.5 h-3.5" /> Clear
             </button>
           </div>
@@ -211,10 +220,10 @@ export default function ApplicationsPage() {
       )}
 
       {/* Status tabs (quick filter) */}
-      <div className="flex gap-2 mb-4 flex-wrap">
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
         <button
           onClick={() => setStatusFilter('all')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === 'all' ? 'bg-indigo-600 text-white' : 'bg-[#1c1c28] text-[#9898b8] border border-[#2a2a3d] hover:border-indigo-500/40'}`}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${statusFilter === 'all' ? 'bg-indigo-600 text-white' : 'bg-[#1c1c28] text-[#9898b8] border border-[#2a2a3d] hover:border-indigo-500/40'}`}
         >
           All ({jobs.length})
         </button>
@@ -225,7 +234,7 @@ export default function ApplicationsPage() {
             <button
               key={s}
               onClick={() => setStatusFilter(s === statusFilter ? 'all' : s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${statusFilter === s ? JOB_STATUS_COLORS[s] : 'bg-[#1c1c28] text-[#9898b8] border-[#2a2a3d] hover:border-indigo-500/40'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border flex-shrink-0 ${statusFilter === s ? JOB_STATUS_COLORS[s] : 'bg-[#1c1c28] text-[#9898b8] border-[#2a2a3d] hover:border-indigo-500/40'}`}
             >
               {JOB_STATUS_LABELS[s]} ({count})
             </button>
@@ -254,84 +263,90 @@ export default function ApplicationsPage() {
       ) : (
         <div className="flex flex-col gap-3">
           {filtered.map(job => (
-            <div key={job.id} className="card-hover" onClick={() => setDetailJob(job)}>
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-indigo-300 font-bold text-sm">{job.company.charAt(0)}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 flex-wrap">
-                    <div>
-                      <p className="font-semibold text-[#f0f0ff]">{job.company}</p>
-                      <p className="text-sm text-[#9898b8]">{job.job_title}</p>
+            <div key={job.id} className="card-hover p-4" onClick={() => setDetailJob(job)}>
+              <div className="flex flex-col gap-3">
+                {/* Header row: Avatar, Info, Badges & Actions */}
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-indigo-300 font-bold text-sm">{job.company.charAt(0)}</span>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`badge ${JOB_STATUS_COLORS[job.status]}`}>{JOB_STATUS_LABELS[job.status]}</span>
-                      <span className={`badge ${VISIBILITY_COLORS[job.visibility]}`}>{VISIBILITY_LABELS[job.visibility]}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-[#f0f0ff] text-base leading-tight truncate">{job.company}</p>
+                        <span className={`badge ${JOB_STATUS_COLORS[job.status]}`}>{JOB_STATUS_LABELS[job.status]}</span>
+                        <span className={`badge ${VISIBILITY_COLORS[job.visibility]}`}>{VISIBILITY_LABELS[job.visibility]}</span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-[#9898b8] mt-0.5 truncate">{job.job_title}</p>
                     </div>
-                  </div>
-                  <div className="flex flex-wrap gap-3 mt-2 text-xs text-[#9898b8]">
-                    {job.location && <span>📍 {job.location}</span>}
-                    {job.source && <span>🔗 {job.source}</span>}
-                    {job.applied_date && <span>Applied: {formatDate(job.applied_date)}</span>}
-                    {job.follow_up_date && <span className="text-amber-400">Follow-up: {formatDate(job.follow_up_date)}</span>}
-                    {job.salary && <span>💰 {job.salary}</span>}
                   </div>
 
-                  {job.resume_id && (
-                    (() => {
-                      const r = resumes.find(res => res.id === job.resume_id) || (job.resume as unknown as Resume);
-                      if (!r) return null;
-                      return (
-                        <div className="flex items-center gap-2 mt-2.5 pt-2 border-t border-[#2a2a3d]/60 flex-wrap" onClick={e => e.stopPropagation()}>
-                          <div className="flex items-center gap-1.5 text-xs text-indigo-300 font-medium">
-                            <FileText className="w-3.5 h-3.5 text-indigo-400" />
-                            <span>Resume: <span className="text-[#f0f0ff] font-semibold">{r.name} ({r.version})</span></span>
-                          </div>
-                          <div className="flex items-center gap-1.5 ml-auto">
-                            <button
-                              type="button"
-                              onClick={() => viewResume(r)}
-                              className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1 hover:border-indigo-500/40 text-indigo-300"
-                              title="View PDF"
-                            >
-                              <Eye className="w-3.5 h-3.5" /> View PDF
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => downloadResume(r)}
-                              className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1 hover:border-indigo-500/40 text-indigo-300"
-                              title="Download PDF"
-                            >
-                              <Download className="w-3.5 h-3.5" /> Download
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })()
-                  )}
-                </div>
-                <div className="flex gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                  {job.status === 'saved' && (
-                    <button onClick={() => markApplied(job)} title="Mark Applied"
-                      className="p-1.5 rounded-lg hover:bg-blue-500/20 text-[#9898b8] hover:text-blue-300 transition-colors">
-                      <CheckCircle className="w-4 h-4" />
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                    {job.status === 'saved' && (
+                      <button onClick={() => markApplied(job)} title="Mark Applied"
+                        className="p-1.5 rounded-lg hover:bg-emerald-500/20 text-[#9898b8] hover:text-emerald-300 transition-colors">
+                        <CheckCircle className="w-4 h-4" />
+                      </button>
+                    )}
+                    <a href={job.job_url} target="_blank" rel="noopener noreferrer"
+                      className="p-1.5 rounded-lg hover:bg-indigo-500/20 text-[#9898b8] hover:text-indigo-300 transition-colors"
+                      title="Open Job">
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                    <button onClick={() => setEditJob(job)} title="Edit"
+                      className="p-1.5 rounded-lg hover:bg-indigo-500/20 text-[#9898b8] hover:text-indigo-300 transition-colors">
+                      <Edit2 className="w-4 h-4" />
                     </button>
-                  )}
-                  <a href={job.job_url} target="_blank" rel="noopener noreferrer"
-                    className="p-1.5 rounded-lg hover:bg-indigo-500/20 text-[#9898b8] hover:text-indigo-300 transition-colors"
-                    title="Open Job">
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                  <button onClick={() => setEditJob(job)} title="Edit"
-                    className="p-1.5 rounded-lg hover:bg-indigo-500/20 text-[#9898b8] hover:text-indigo-300 transition-colors">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => setDeleteConfirm(job.id)} title="Delete"
-                    className="p-1.5 rounded-lg hover:bg-red-500/20 text-[#9898b8] hover:text-red-300 transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <button onClick={() => setDeleteConfirm(job.id)} title="Delete"
+                      className="p-1.5 rounded-lg hover:bg-red-500/20 text-[#9898b8] hover:text-red-300 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
+
+                {/* Details Pills */}
+                <div className="flex flex-wrap gap-2 text-xs text-[#9898b8]">
+                  {job.location && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">📍 {job.location}</span>}
+                  {job.source && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">🔗 {job.source}</span>}
+                  {job.applied_date && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">Applied: {formatDate(job.applied_date)}</span>}
+                  {job.follow_up_date && <span className="bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">Follow-up: {formatDate(job.follow_up_date)}</span>}
+                  {job.salary && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">💰 {job.salary}</span>}
+                </div>
+
+                {/* Attached Resume Bar */}
+                {job.resume_id && (
+                  (() => {
+                    const r = resumes.find(res => res.id === job.resume_id) || (job.resume as unknown as Resume);
+                    if (!r) return null;
+                    return (
+                      <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-[#2a2a3d]/60 flex-wrap" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5 text-xs text-indigo-300 font-medium">
+                          <FileText className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                          <span className="truncate">Resume: <span className="text-[#f0f0ff] font-semibold">{r.name} ({r.version})</span></span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => viewResume(r)}
+                            className="btn-secondary text-[11px] py-1 px-2 flex items-center gap-1 hover:border-indigo-500/40 text-indigo-300"
+                            title="View PDF"
+                          >
+                            <Eye className="w-3 h-3" /> View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadResume(r)}
+                            className="btn-secondary text-[11px] py-1 px-2 flex items-center gap-1 hover:border-indigo-500/40 text-indigo-300"
+                            title="Download PDF"
+                          >
+                            <Download className="w-3 h-3" /> Download
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
               </div>
             </div>
           ))}
@@ -378,3 +393,4 @@ export default function ApplicationsPage() {
     </div>
   );
 }
+

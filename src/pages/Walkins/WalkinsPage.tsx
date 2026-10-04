@@ -146,79 +146,82 @@ export default function WalkinsPage() {
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-3">
           {icon}
-          <h2 className="section-title">{title}</h2>
+          <h2 className="section-title text-base sm:text-lg">{title}</h2>
           <span className="text-xs text-[#9898b8] bg-[#1c1c28] border border-[#2a2a3d] px-2 py-0.5 rounded-full">{items.length}</span>
         </div>
         <div className="flex flex-col gap-3">
           {items.map(w => (
-            <div key={w.id} className="card-hover" onClick={() => openDetail(w)}>
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-4 h-4 text-cyan-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-semibold text-[#f0f0ff]">{w.company}</p>
-                      <p className="text-sm text-[#9898b8]">{w.job_title}</p>
+            <div key={w.id} className="card-hover p-4" onClick={() => openDetail(w)}>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-4 h-4 text-cyan-400" />
                     </div>
-                    <div className="flex gap-1 flex-shrink-0">
-                      <span className="badge bg-cyan-500/20 text-cyan-300 border-cyan-500/30">{VISIBILITY_LABELS[w.visibility]}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-[#f0f0ff] text-base leading-tight truncate">{w.company}</p>
+                        <span className="badge bg-cyan-500/20 text-cyan-300 border-cyan-500/30">{VISIBILITY_LABELS[w.visibility]}</span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-[#9898b8] mt-0.5 truncate">{w.job_title}</p>
                     </div>
-                  </div>
-                  <div className="flex flex-wrap gap-3 mt-2 text-xs text-[#9898b8]">
-                    <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDate(w.date)}</span>
-                    {w.start_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{w.start_time}{w.end_time ? ` – ${w.end_time}` : ''}</span>}
-                    {w.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{w.location}</span>}
                   </div>
 
-                  {w.resume_id && (
-                    (() => {
-                      const r = resumes.find(res => res.id === w.resume_id) || (w.resume as unknown as Resume);
-                      if (!r) return null;
-                      return (
-                        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#2a2a3d]/60 flex-wrap" onClick={e => e.stopPropagation()}>
-                          <div className="flex items-center gap-1.5 text-xs text-indigo-300 font-medium">
-                            <FileText className="w-3.5 h-3.5 text-indigo-400" />
-                            <span>Resume: <span className="text-[#f0f0ff] font-semibold">{r.name} ({r.version})</span></span>
-                          </div>
-                          <div className="flex items-center gap-1.5 ml-auto">
-                            <button
-                              type="button"
-                              onClick={() => viewResume(r)}
-                              className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1 hover:border-indigo-500/40 text-indigo-300"
-                              title="View PDF"
-                            >
-                              <Eye className="w-3.5 h-3.5" /> View PDF
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => downloadResume(r)}
-                              className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1 hover:border-indigo-500/40 text-indigo-300"
-                              title="Download PDF"
-                            >
-                              <Download className="w-3.5 h-3.5" /> Download
-                            </button>
-                          </div>
+                  <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                    {w.registration_url && (
+                      <a href={w.registration_url} target="_blank" rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg hover:bg-indigo-500/20 text-[#9898b8] hover:text-indigo-300 transition-colors"
+                        title="Open Registration">
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    )}
+                    <button onClick={() => setEditWalkin(w)} className="p-1.5 rounded-lg hover:bg-indigo-500/20 text-[#9898b8] hover:text-indigo-300 transition-colors">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setDeleteConfirm(w.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 text-[#9898b8] hover:text-red-300 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 text-xs text-[#9898b8]">
+                  <span className="flex items-center gap-1 bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]"><Calendar className="w-3 h-3 text-cyan-400" />{formatDate(w.date)}</span>
+                  {w.start_time && <span className="flex items-center gap-1 bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]"><Clock className="w-3 h-3" />{w.start_time}{w.end_time ? ` – ${w.end_time}` : ''}</span>}
+                  {w.location && <span className="flex items-center gap-1 bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]"><MapPin className="w-3 h-3" />{w.location}</span>}
+                </div>
+
+                {w.resume_id && (
+                  (() => {
+                    const r = resumes.find(res => res.id === w.resume_id) || (w.resume as unknown as Resume);
+                    if (!r) return null;
+                    return (
+                      <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-[#2a2a3d]/60 flex-wrap" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5 text-xs text-indigo-300 font-medium">
+                          <FileText className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                          <span className="truncate">Resume: <span className="text-[#f0f0ff] font-semibold">{r.name} ({r.version})</span></span>
                         </div>
-                      );
-                    })()
-                  )}
-                </div>
-                <div className="flex gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                  {w.registration_url && (
-                    <a href={w.registration_url} target="_blank" rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg hover:bg-indigo-500/20 text-[#9898b8] hover:text-indigo-300 transition-colors">
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  )}
-                  <button onClick={() => setEditWalkin(w)} className="p-1.5 rounded-lg hover:bg-indigo-500/20 text-[#9898b8] hover:text-indigo-300 transition-colors">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => setDeleteConfirm(w.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 text-[#9898b8] hover:text-red-300 transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => viewResume(r)}
+                            className="btn-secondary text-[11px] py-1 px-2 flex items-center gap-1 hover:border-indigo-500/40 text-indigo-300"
+                            title="View PDF"
+                          >
+                            <Eye className="w-3 h-3" /> View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadResume(r)}
+                            className="btn-secondary text-[11px] py-1 px-2 flex items-center gap-1 hover:border-indigo-500/40 text-indigo-300"
+                            title="Download PDF"
+                          >
+                            <Download className="w-3 h-3" /> Download
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
               </div>
             </div>
           ))}
@@ -228,24 +231,29 @@ export default function WalkinsPage() {
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="page-title">My Walk-ins</h1>
-          <p className="page-subtitle mt-1">{walkins.length} total walk-in drives</p>
+          <h1 className="page-title text-xl sm:text-2xl font-bold">My Walk-ins</h1>
+          <p className="page-subtitle mt-0.5">{walkins.length} total walk-in drives</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={exportCSV} className="btn-secondary text-sm">Export CSV</button>
-          <button onClick={() => setShowAdd(true)} className="btn-primary">
+        <div className="flex items-center gap-2">
+          <button onClick={exportCSV} className="btn-secondary text-xs sm:text-sm py-2 px-3 flex-1 sm:flex-initial justify-center">Export CSV</button>
+          <button onClick={() => setShowAdd(true)} className="btn-primary text-xs sm:text-sm py-2 px-3 sm:px-4 flex-1 sm:flex-initial justify-center">
             <Plus className="w-4 h-4" /> Add Walk-in
           </button>
         </div>
       </div>
 
       <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6666a0]" />
-        <input type="text" placeholder="Search company, role, location..." value={search}
-          onChange={e => setSearch(e.target.value)} className="w-full pl-9 text-sm max-w-md" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6666a0]" />
+        <input
+          type="text"
+          placeholder="Search company, role, location..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-[#171723] border border-[#2a2a3d] focus:border-indigo-500 rounded-xl text-[#f0f0ff] placeholder-[#6666a0] max-w-md"
+        />
       </div>
 
       {loading ? (
@@ -254,7 +262,7 @@ export default function WalkinsPage() {
         <div className="empty-state">
           <div className="empty-state-icon"><MapPin className="w-7 h-7" /></div>
           <p className="text-[#f0f0ff] font-medium">No walk-in drives yet</p>
-          <button onClick={() => setShowAdd(true)} className="btn-primary"><Plus className="w-4 h-4" /> Add Walk-in</button>
+          <button onClick={() => setShowAdd(true)} className="btn-primary text-xs sm:text-sm mt-2"><Plus className="w-4 h-4" /> Add Walk-in</button>
         </div>
       ) : (
         <>
@@ -264,6 +272,7 @@ export default function WalkinsPage() {
           <Section title="Past" items={pastWalkins} icon={<Clock className="w-4 h-4 text-[#9898b8]" />} />
         </>
       )}
+
 
       {/* Detail Sidebar/Modal */}
       {detailWalkin && (

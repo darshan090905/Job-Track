@@ -2,16 +2,19 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Search, Filter, X, ExternalLink, BookmarkPlus, Loader2,
-  Briefcase, MapPin, Users, Building2, Rss, ChevronDown
+  Briefcase, MapPin, Users, Building2, Rss, ChevronDown, Trophy, Plus
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
-import { Job, WalkinDrive, Profile } from '../../types';
+import { Job, WalkinDrive, Profile, Resume } from '../../types';
 import { JOB_SOURCES } from '../../utils/constants';
 import { formatDate, debounce } from '../../utils/helpers';
+import Scoreboard from '../../components/Scoreboard';
+import JobModal from '../../components/JobModal';
+import WalkinModal from '../../components/WalkinModal';
 
-type FeedTab = 'jobs' | 'walkins';
+type FeedTab = 'jobs' | 'walkins' | 'scoreboard';
 type VisibilityTab = 'everyone' | 'friends';
 
 export default function JobFeedPage() {
@@ -19,15 +22,20 @@ export default function JobFeedPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
 
-  const [feedTab, setFeedTab] = useState<FeedTab>('jobs');
+  const [feedTab, setFeedTab] = useState<FeedTab>(
+    searchParams.get('tab') === 'scoreboard' ? 'scoreboard' : 'jobs'
+  );
   const [visTab, setVisTab] = useState<VisibilityTab>(searchParams.get('tab') === 'friends' ? 'friends' : 'everyone');
   const [jobs, setJobs] = useState<Job[]>([]);
   const [walkins, setWalkins] = useState<WalkinDrive[]>([]);
+  const [resumes, setResumes] = useState<Resume[]>([]);
   const [friends, setFriends] = useState<Profile[]>([]);
   const [friendIds, setFriendIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [showAddJobModal, setShowAddJobModal] = useState(false);
+  const [showAddWalkinModal, setShowAddWalkinModal] = useState(false);
 
   // Filters
   const [filterFriend, setFilterFriend] = useState('');
@@ -40,12 +48,21 @@ export default function JobFeedPage() {
   useEffect(() => {
     if (!user) return;
     loadFriendsFirst();
+    loadResumes();
   }, [user]);
+
+  async function loadResumes() {
+    if (!user) return;
+    const { data } = await supabase.from('resumes').select('*').eq('user_id', user.id).eq('is_archived', false);
+    setResumes((data || []) as Resume[]);
+  }
 
   useEffect(() => {
     if (!user) return;
-    loadFeed();
-  }, [user, visTab, friendIds]);
+    if (feedTab !== 'scoreboard') {
+      loadFeed();
+    }
+  }, [user, visTab, friendIds, feedTab]);
 
   async function loadFriendsFirst() {
     if (!user) return;
@@ -158,8 +175,6 @@ export default function JobFeedPage() {
     }
   }
 
-  useEffect(() => { loadFeed(); }, [feedTab]);
-
   const debouncedSearch = useCallback(debounce((v: string) => setSearch(v), 300), []);
 
   function clearFilters() {
@@ -252,232 +267,338 @@ export default function JobFeedPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="page-title">🔥 Job Feed</h1>
-          <p className="page-subtitle mt-1">Discover jobs shared by the community</p>
+          <h1 className="page-title flex items-center gap-2">
+            <span>🔥 Community Job Feed</span>
+          </h1>
+          <p className="page-subtitle mt-1">Discover & share opportunities with your network</p>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={() => setShowAddJobModal(true)} className="btn-primary text-xs sm:text-sm py-2">
+            <Plus className="w-4 h-4" /> Share Job
+          </button>
+          <button onClick={() => setShowAddWalkinModal(true)} className="btn-secondary text-xs sm:text-sm py-2 text-cyan-300">
+            <MapPin className="w-4 h-4" /> Share Walk-in
+          </button>
         </div>
       </div>
 
-      {/* Feed Tabs (Jobs/Walk-ins) */}
-      <div className="flex gap-2 mb-4">
-        {(['jobs', 'walkins'] as FeedTab[]).map(t => (
-          <button key={t} onClick={() => setFeedTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${feedTab === t ? 'bg-indigo-600 text-white' : 'bg-[#1c1c28] text-[#9898b8] border border-[#2a2a3d] hover:border-indigo-500/40'}`}>
-            {t === 'jobs' ? <><Briefcase className="w-3.5 h-3.5 inline mr-1.5" />Jobs</> : <><MapPin className="w-3.5 h-3.5 inline mr-1.5" />Walk-ins</>}
+      {/* Main Tabs (Jobs / Walk-ins / Scoreboard) */}
+      <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
+        {(['jobs', 'walkins', 'scoreboard'] as FeedTab[]).map(t => (
+          <button
+            key={t}
+            onClick={() => setFeedTab(t)}
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 flex-shrink-0 ${
+              feedTab === t
+                ? t === 'scoreboard'
+                  ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
+                  : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                : 'bg-[#1c1c28] text-[#9898b8] border border-[#2a2a3d] hover:border-indigo-500/40 hover:text-[#f0f0ff]'
+            }`}
+          >
+            {t === 'jobs' && <Briefcase className="w-3.5 h-3.5" />}
+            {t === 'walkins' && <MapPin className="w-3.5 h-3.5" />}
+            {t === 'scoreboard' && <Trophy className="w-3.5 h-3.5 text-amber-900" />}
+            <span>
+              {t === 'jobs' ? `Jobs (${jobs.length})` :
+               t === 'walkins' ? `Walk-ins (${walkins.length})` :
+               '🏆 Scoreboard & Ranks'}
+            </span>
           </button>
         ))}
       </div>
 
-      {/* Visibility Tabs */}
-      <div className="flex gap-2 mb-4">
-        {(['everyone', 'friends'] as VisibilityTab[]).map(t => (
-          <button key={t} onClick={() => setVisTab(t)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all capitalize ${visTab === t ? 'bg-[#232334] text-[#f0f0ff] border border-indigo-500/40' : 'text-[#9898b8] hover:text-[#f0f0ff]'}`}>
-            {t === 'friends' ? <><Users className="w-3.5 h-3.5 inline mr-1" />Friends</> : t === 'everyone' ? <><Rss className="w-3.5 h-3.5 inline mr-1" />Everyone</> : t}
-          </button>
-        ))}
-      </div>
-
-      {/* Search & Quick Role Filters */}
-      <div className="flex flex-col gap-3 mb-5">
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[240px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6666a0]" />
-            <input
-              type="text"
-              placeholder="Search by role (DevOps, Software Engineer...), company, location, or friend..."
-              onChange={e => debouncedSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm bg-[#171723] border border-[#2a2a3d] focus:border-indigo-500 rounded-xl text-[#f0f0ff] placeholder-[#6666a0]"
-            />
-          </div>
-          <button onClick={() => setShowFilters(!showFilters)} className={`btn-secondary text-sm ${showFilters ? 'border-indigo-500 text-indigo-300' : ''}`}>
-            <Filter className="w-3.5 h-3.5" /> More Filters {hasFilters && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 ml-1" />}
-          </button>
-          {hasFilters && (
-            <button onClick={clearFilters} className="btn-secondary text-sm text-red-400 hover:text-red-300">
-              <X className="w-3.5 h-3.5" /> Clear Filters
-            </button>
-          )}
-        </div>
-
-        {/* Quick Role Tags */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-          <span className="text-[#6666a0] font-medium flex-shrink-0">Quick Roles:</span>
-          {['DevOps', 'Software', 'Frontend', 'Backend', 'Full Stack', 'Cloud', 'Data', 'QA'].map(tag => {
-            const active = search.toLowerCase() === tag.toLowerCase() || filterRole.toLowerCase().includes(tag.toLowerCase());
-            return (
+      {/* Scoreboard View */}
+      {feedTab === 'scoreboard' ? (
+        <Scoreboard
+          onAddJob={() => setShowAddJobModal(true)}
+          onAddWalkin={() => setShowAddWalkinModal(true)}
+        />
+      ) : (
+        <>
+          {/* Visibility Sub-Tabs */}
+          <div className="flex gap-2 mb-4">
+            {(['everyone', 'friends'] as VisibilityTab[]).map(t => (
               <button
-                key={tag}
-                type="button"
-                onClick={() => {
-                  if (active) {
-                    setFilterRole('');
-                    setSearch('');
-                  } else {
-                    setFilterRole('');
-                    setSearch(tag);
-                  }
-                }}
-                className={`px-3 py-1 rounded-lg font-medium transition-all flex-shrink-0 border ${
-                  active
-                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
-                    : 'bg-[#171723] text-[#9898b8] border-[#2a2a3d] hover:border-indigo-500/40 hover:text-[#f0f0ff]'
+                key={t}
+                onClick={() => setVisTab(t)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all capitalize flex items-center gap-1.5 ${
+                  visTab === t
+                    ? 'bg-[#232334] text-[#f0f0ff] border border-indigo-500/40 font-semibold'
+                    : 'text-[#9898b8] hover:text-[#f0f0ff]'
                 }`}
               >
-                {tag}
+                {t === 'friends' ? <Users className="w-3.5 h-3.5 text-indigo-400" /> : <Rss className="w-3.5 h-3.5 text-amber-400" />}
+                <span>{t === 'friends' ? `Friends Only (${friends.length})` : 'Public Feed (Everyone)'}</span>
               </button>
-            );
-          })}
-        </div>
-      </div>
+            ))}
+          </div>
 
-      {showFilters && (
-        <div className="card mb-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          {visTab === 'friends' && friends.length > 0 && (
-            <div className="input-group">
-              <label>Friend</label>
-              <select value={filterFriend} onChange={e => setFilterFriend(e.target.value)} className="text-sm">
-                <option value="">All Friends</option>
-                {friends.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-              </select>
+          {/* Search & Quick Role Filters */}
+          <div className="flex flex-col gap-3 mb-5">
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6666a0]" />
+                <input
+                  type="text"
+                  placeholder="Search role (DevOps, Software...), company, location, friend..."
+                  onChange={e => debouncedSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-[#171723] border border-[#2a2a3d] focus:border-indigo-500 rounded-xl text-[#f0f0ff] placeholder-[#6666a0]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`btn-secondary text-xs sm:text-sm py-2 flex-1 sm:flex-initial justify-center ${showFilters ? 'border-indigo-500 text-indigo-300' : ''}`}
+                >
+                  <Filter className="w-3.5 h-3.5" /> Filters {hasFilters && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 ml-1" />}
+                </button>
+                {hasFilters && (
+                  <button onClick={clearFilters} className="btn-secondary text-xs sm:text-sm py-2 text-red-400 hover:text-red-300">
+                    <X className="w-3.5 h-3.5" /> Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Role Tags */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+              <span className="text-[#6666a0] font-medium flex-shrink-0">Quick Roles:</span>
+              {['DevOps', 'Software', 'Frontend', 'Backend', 'Full Stack', 'Cloud', 'Data', 'QA'].map(tag => {
+                const active = search.toLowerCase() === tag.toLowerCase() || filterRole.toLowerCase().includes(tag.toLowerCase());
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => {
+                      if (active) {
+                        setFilterRole('');
+                        setSearch('');
+                      } else {
+                        setFilterRole('');
+                        setSearch(tag);
+                      }
+                    }}
+                    className={`px-3 py-1 rounded-lg font-medium transition-all flex-shrink-0 border ${
+                      active
+                        ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
+                        : 'bg-[#171723] text-[#9898b8] border-[#2a2a3d] hover:border-indigo-500/40 hover:text-[#f0f0ff]'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {showFilters && (
+            <div className="card mb-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 p-4">
+              {visTab === 'friends' && friends.length > 0 && (
+                <div className="input-group">
+                  <label className="text-xs">Friend</label>
+                  <select value={filterFriend} onChange={e => setFilterFriend(e.target.value)} className="text-xs py-1.5">
+                    <option value="">All Friends</option>
+                    {friends.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select>
+                </div>
+              )}
+              <div className="input-group">
+                <label className="text-xs">Company</label>
+                <select value={filterCompany} onChange={e => setFilterCompany(e.target.value)} className="text-xs py-1.5">
+                  <option value="">All</option>
+                  {companies.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="input-group">
+                <label className="text-xs">Role</label>
+                <select value={filterRole} onChange={e => setFilterRole(e.target.value)} className="text-xs py-1.5">
+                  <option value="">All</option>
+                  {roles.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div className="input-group">
+                <label className="text-xs">Location</label>
+                <select value={filterLocation} onChange={e => setFilterLocation(e.target.value)} className="text-xs py-1.5">
+                  <option value="">All</option>
+                  {locations.map(l => <option key={l} value={l!}>{l}</option>)}
+                </select>
+              </div>
+              {feedTab === 'jobs' && (
+                <div className="input-group">
+                  <label className="text-xs">Source</label>
+                  <select value={filterSource} onChange={e => setFilterSource(e.target.value)} className="text-xs py-1.5">
+                    <option value="">All</option>
+                    {JOB_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              )}
+              <div className="input-group">
+                <label className="text-xs">Date</label>
+                <select value={filterDate} onChange={e => setFilterDate(e.target.value)} className="text-xs py-1.5">
+                  <option value="">Any time</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                </select>
+              </div>
             </div>
           )}
-          <div className="input-group">
-            <label>Company</label>
-            <select value={filterCompany} onChange={e => setFilterCompany(e.target.value)} className="text-sm">
-              <option value="">All</option>
-              {companies.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div className="input-group">
-            <label>Role</label>
-            <select value={filterRole} onChange={e => setFilterRole(e.target.value)} className="text-sm">
-              <option value="">All</option>
-              {roles.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-          <div className="input-group">
-            <label>Location</label>
-            <select value={filterLocation} onChange={e => setFilterLocation(e.target.value)} className="text-sm">
-              <option value="">All</option>
-              {locations.map(l => <option key={l} value={l!}>{l}</option>)}
-            </select>
-          </div>
-          {feedTab === 'jobs' && (
-            <div className="input-group">
-              <label>Source</label>
-              <select value={filterSource} onChange={e => setFilterSource(e.target.value)} className="text-sm">
-                <option value="">All</option>
-                {JOB_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
+
+          {/* Feed Content */}
+          {loading ? (
+            <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-400" /></div>
+          ) : feedTab === 'jobs' ? (
+            filteredJobs.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon"><Briefcase className="w-7 h-7" /></div>
+                <p className="text-[#f0f0ff] font-medium">No shared jobs available</p>
+                <p className="text-[#9898b8] text-sm">{visTab === 'friends' ? 'No friends have shared jobs yet.' : 'Be the first to share a job!'}</p>
+                <button onClick={() => setShowAddJobModal(true)} className="btn-primary text-xs mt-2">
+                  <Plus className="w-4 h-4" /> Share a Job
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredJobs.map(job => {
+                  const profile = job.profile as Profile | undefined;
+                  return (
+                    <div key={job.id} className="card flex flex-col justify-between gap-3 hover:border-indigo-500/30 transition-all">
+                      <div>
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-indigo-300 font-bold">{job.company.charAt(0)}</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-[#f0f0ff] truncate text-sm sm:text-base">{job.company}</p>
+                            <p className="text-xs sm:text-sm text-[#9898b8] truncate">{job.job_title}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 text-xs text-[#9898b8] mt-3">
+                          {job.location && <span className="flex items-center gap-1 bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]"><MapPin className="w-3 h-3 text-indigo-400" />{job.location}</span>}
+                          {job.source && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">🔗 {job.source}</span>}
+                          {job.salary && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">💰 {job.salary}</span>}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[11px] text-[#6666a0] mb-2.5 pt-2 border-t border-[#2a2a3d]/50 flex items-center justify-between">
+                          {profile && <span>Shared by <span className="text-indigo-400 font-medium">{profile.name}</span></span>}
+                          <span>{formatDate(job.created_at)}</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <a href={job.job_url} target="_blank" rel="noopener noreferrer" className="btn-primary text-xs py-2 justify-center">
+                            <ExternalLink className="w-3.5 h-3.5" /> Open
+                          </a>
+                          <button onClick={() => saveJobToMyApps(job)} className="btn-secondary text-xs py-2 justify-center">
+                            <BookmarkPlus className="w-3.5 h-3.5" /> Save
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          ) : (
+            filteredWalkins.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon"><MapPin className="w-7 h-7" /></div>
+                <p className="text-[#f0f0ff] font-medium">No shared walk-ins</p>
+                <p className="text-[#9898b8] text-sm">No upcoming walk-in drives have been shared yet.</p>
+                <button onClick={() => setShowAddWalkinModal(true)} className="btn-secondary text-xs mt-2 text-cyan-300">
+                  <MapPin className="w-4 h-4" /> Share a Walk-in Drive
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredWalkins.map(w => {
+                  const profile = w.profile as Profile | undefined;
+                  return (
+                    <div key={w.id} className="card flex flex-col justify-between gap-3 hover:border-cyan-500/30 transition-all">
+                      <div>
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                            <MapPin className="w-4 h-4 text-cyan-400" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-[#f0f0ff] truncate text-sm sm:text-base">{w.company}</p>
+                            <p className="text-xs sm:text-sm text-[#9898b8] truncate">{w.job_title}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 text-xs text-[#9898b8] mt-3">
+                          <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d] text-cyan-300">📅 {formatDate(w.date)}</span>
+                          {w.start_time && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">🕐 {w.start_time}</span>}
+                          {w.location && <span className="bg-[#12121a] px-2 py-0.5 rounded border border-[#2a2a3d]">📍 {w.location}</span>}
+                        </div>
+                      </div>
+
+                      <div>
+                        {profile && (
+                          <div className="text-[11px] text-[#6666a0] mb-2.5 pt-2 border-t border-[#2a2a3d]/50">
+                            Shared by <span className="text-indigo-400 font-medium">{profile.name}</span>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2">
+                          {w.registration_url ? (
+                            <a href={w.registration_url} target="_blank" rel="noopener noreferrer" className="btn-primary text-xs py-2 justify-center">
+                              <ExternalLink className="w-3.5 h-3.5" /> Register
+                            </a>
+                          ) : (
+                            <div className="text-xs text-[#9898b8] flex items-center justify-center bg-[#12121a] rounded-lg border border-[#2a2a3d]">
+                              Direct Walk-in
+                            </div>
+                          )}
+                          <button onClick={() => saveWalkinToMine(w)} className="btn-secondary text-xs py-2 justify-center">
+                            <BookmarkPlus className="w-3.5 h-3.5" /> Save
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
           )}
-          <div className="input-group">
-            <label>Date</label>
-            <select value={filterDate} onChange={e => setFilterDate(e.target.value)} className="text-sm">
-              <option value="">Any time</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-            </select>
-          </div>
-        </div>
+        </>
       )}
 
-      {/* Content */}
-      {loading ? (
-        <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-400" /></div>
-      ) : feedTab === 'jobs' ? (
-        filteredJobs.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon"><Briefcase className="w-7 h-7" /></div>
-            <p className="text-[#f0f0ff] font-medium">No shared jobs available</p>
-            <p className="text-[#9898b8] text-sm">{visTab === 'friends' ? 'No friends have shared jobs yet.' : 'Be the first to share a job!'}</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredJobs.map(job => {
-              const profile = job.profile as Profile | undefined;
-              return (
-                <div key={job.id} className="card flex flex-col gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-indigo-300 font-bold">{job.company.charAt(0)}</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-[#f0f0ff] truncate">{job.company}</p>
-                      <p className="text-sm text-[#9898b8] truncate">{job.job_title}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-xs text-[#9898b8]">
-                    {job.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>}
-                    {job.source && <span>🔗 {job.source}</span>}
-                    {job.salary && <span>💰 {job.salary}</span>}
-                  </div>
-                  <div className="text-xs text-[#6666a0]">
-                    {profile && <span>Shared by <span className="text-indigo-400">{profile.name}</span> • </span>}
-                    {formatDate(job.created_at)}
-                  </div>
-                  <div className="flex gap-2 pt-1 border-t border-[#2a2a3d]">
-                    <a href={job.job_url} target="_blank" rel="noopener noreferrer" className="btn-primary text-xs flex-1 justify-center">
-                      <ExternalLink className="w-3.5 h-3.5" /> Open Job
-                    </a>
-                    <button onClick={() => saveJobToMyApps(job)} className="btn-secondary text-xs flex-1 justify-center">
-                      <BookmarkPlus className="w-3.5 h-3.5" /> Save
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )
-      ) : (
-        filteredWalkins.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon"><MapPin className="w-7 h-7" /></div>
-            <p className="text-[#f0f0ff] font-medium">No shared walk-ins</p>
-            <p className="text-[#9898b8] text-sm">No upcoming walk-in drives have been shared yet.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredWalkins.map(w => {
-              const profile = w.profile as Profile | undefined;
-              return (
-                <div key={w.id} className="card flex flex-col gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
-                      <MapPin className="w-4 h-4 text-cyan-400" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-[#f0f0ff] truncate">{w.company}</p>
-                      <p className="text-sm text-[#9898b8] truncate">{w.job_title}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-xs text-[#9898b8]">
-                    <span>📅 {formatDate(w.date)}</span>
-                    {w.start_time && <span>🕐 {w.start_time}</span>}
-                    {w.location && <span><MapPin className="w-3 h-3 inline" /> {w.location}</span>}
-                  </div>
-                  {profile && <p className="text-xs text-[#6666a0]">Shared by <span className="text-indigo-400">{profile.name}</span></p>}
-                  <div className="flex gap-2 pt-1 border-t border-[#2a2a3d]">
-                    {w.registration_url && (
-                      <a href={w.registration_url} target="_blank" rel="noopener noreferrer" className="btn-primary text-xs flex-1 justify-center">
-                        <ExternalLink className="w-3.5 h-3.5" /> Register
-                      </a>
-                    )}
-                    <button onClick={() => saveWalkinToMine(w)} className="btn-secondary text-xs flex-1 justify-center">
-                      <BookmarkPlus className="w-3.5 h-3.5" /> Save
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )
+      {/* Add Job Modal */}
+      {showAddJobModal && (
+        <JobModal
+          resumes={resumes}
+          onClose={() => setShowAddJobModal(false)}
+          onSaved={() => {
+            setShowAddJobModal(false);
+            loadFeed();
+            toast('Job posted to community!', 'success');
+          }}
+        />
+      )}
+
+      {/* Add Walkin Modal */}
+      {showAddWalkinModal && (
+        <WalkinModal
+          resumes={resumes}
+          onClose={() => setShowAddWalkinModal(false)}
+          onSaved={() => {
+            setShowAddWalkinModal(false);
+            loadFeed();
+            toast('Walk-in drive shared with community!', 'success');
+          }}
+        />
       )}
     </div>
   );
 }
+
