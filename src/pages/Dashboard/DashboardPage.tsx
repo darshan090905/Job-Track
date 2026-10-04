@@ -63,39 +63,104 @@ export default function DashboardPage() {
     setStats(prev => ({ ...prev, walkins: count || 0 }));
   }
 
+  interface CommunityNotification {
+    id: string;
+    type: 'job' | 'walkin';
+    title: string;
+    company: string;
+    location?: string;
+    url?: string;
+    date?: string;
+    startTime?: string;
+    createdAt: string;
+    authorName: string;
+    authorAvatar?: string;
+    originalItem: Job | WalkinDrive;
+  }
+
+  const [notifications, setNotifications] = useState<CommunityNotification[]>([]);
+  const [notificationFilter, setNotificationFilter] = useState<'all' | 'jobs' | 'walkins'>('all');
+
   async function loadSharedJobs() {
     if (!user) return;
-    // Get accepted friends first
-    const { data: friendsData } = await supabase
-      .from('friend_requests')
-      .select('sender_user_id, receiver_user_id')
-      .or(`sender_user_id.eq.${user.id},receiver_user_id.eq.${user.id}`)
-      .eq('status', 'accepted');
-
-    const friendIds = (friendsData || []).map(f =>
-      f.sender_user_id === user.id ? f.receiver_user_id : f.sender_user_id
-    );
-
-    // Get everyone jobs (excluding own)
-    const { data: everyoneJobs } = await supabase
-      .from('jobs')
-      .select('*, profile:profiles(name, avatar_url)')
-      .eq('visibility', 'everyone')
-      .neq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(6);
-
-    setRecentShared((everyoneJobs || []) as Job[]);
-
-    if (friendIds.length > 0) {
-      const { data: fJobs } = await supabase
+    try {
+      // 1. Fetch public / friends' jobs
+      const { data: jobsData, error: jobsErr } = await supabase
         .from('jobs')
-        .select('*, profile:profiles(name, avatar_url)')
-        .eq('visibility', 'friends')
-        .in('user_id', friendIds)
+        .select('*')
+        .in('visibility', ['everyone', 'friends'])
+        .neq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(4);
-      setFriendJobs((fJobs || []) as Job[]);
+        .limit(10);
+
+      if (jobsErr) console.error('Dashboard jobs fetch error:', jobsErr);
+
+      // 2. Fetch public / friends' walk-in drives
+      const { data: walkinsData, error: wErr } = await supabase
+        .from('walkin_drives')
+        .select('*')
+        .in('visibility', ['everyone', 'friends'])
+        .neq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (wErr) console.error('Dashboard walkins fetch error:', wErr);
+
+      const jobs = jobsData || [];
+      const walkins = walkinsData || [];
+
+      // 3. Collect author IDs
+      const userIds = new Set<string>();
+      jobs.forEach(j => userIds.add(j.user_id));
+      walkins.forEach(w => userIds.add(w.user_id));
+
+      let profileMap: Record<string, { name: string; avatar_url?: string }> = {};
+      if (userIds.size > 0) {
+        const { data: profData } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .in('id', Array.from(userIds));
+
+        if (profData) {
+          profileMap = Object.fromEntries(profData.map(p => [p.id, p]));
+        }
+      }
+
+      // 4. Transform into unified Community Notification list
+      const feedItems: CommunityNotification[] = [
+        ...jobs.map(j => ({
+          id: `job-${j.id}`,
+          type: 'job' as const,
+          title: j.job_title,
+          company: j.company,
+          location: j.location,
+          url: j.job_url,
+          createdAt: j.created_at,
+          authorName: profileMap[j.user_id]?.name || 'JobTrack Member',
+          authorAvatar: profileMap[j.user_id]?.avatar_url,
+          originalItem: j as Job,
+        })),
+        ...walkins.map(w => ({
+          id: `walkin-${w.id}`,
+          type: 'walkin' as const,
+          title: w.job_title,
+          company: w.company,
+          location: w.location,
+          url: w.registration_url,
+          date: w.date,
+          startTime: w.start_time,
+          createdAt: w.created_at,
+          authorName: profileMap[w.user_id]?.name || 'JobTrack Member',
+          authorAvatar: profileMap[w.user_id]?.avatar_url,
+          originalItem: w as WalkinDrive,
+        })),
+      ];
+
+      // Sort by newest created_at
+      feedItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setNotifications(feedItems);
+    } catch (err) {
+      console.error('loadSharedJobs error:', err);
     }
   }
 
@@ -115,6 +180,11 @@ export default function DashboardPage() {
 
   async function saveJob(job: Job) {
     if (!user) return;
+    const { data: existing } = await supabase.from('jobs').select('id').eq('user_id', user.id).eq('job_url', job.job_url).single();
+    if (existing) {
+      toast('This job is already in My Applications.', 'info');
+      return;
+    }
     const { error } = await supabase.from('jobs').insert({
       user_id: user.id,
       company: job.company,
@@ -129,6 +199,37 @@ export default function DashboardPage() {
     if (error) toast('Failed to save job', 'error');
     else toast('Job saved to My Applications!', 'success');
   }
+
+  async function saveWalkin(w: WalkinDrive) {
+    if (!user) return;
+    const { error } = await supabase.from('walkin_drives').insert({
+      user_id: user.id,
+      company: w.company,
+      job_title: w.job_title,
+      date: w.date,
+      start_time: w.start_time,
+      end_time: w.end_time,
+      location: w.location,
+      address: w.address,
+      registration_url: w.registration_url,
+      notes: w.notes,
+      status: 'upcoming',
+      visibility: 'private',
+      reminder_enabled: true,
+      reminder_days_before: 1,
+      email_reminder: false,
+      reminder_sent: false,
+      source_shared_walkin_id: w.id,
+    });
+    if (error) toast('Failed to save walk-in', 'error');
+    else toast('Walk-in saved to My Walk-ins!', 'success');
+  }
+
+  const filteredNotifications = notifications.filter(n => {
+    if (notificationFilter === 'jobs') return n.type === 'job';
+    if (notificationFilter === 'walkins') return n.type === 'walkin';
+    return true;
+  });
 
   const statCards = [
     { label: 'Total Jobs', value: stats.total, icon: Briefcase, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
@@ -221,49 +322,140 @@ export default function DashboardPage() {
 
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Latest Jobs from Everyone */}
+        {/* Latest Opportunities & Notifications */}
         <div className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="section-title">🔥 Latest Jobs From Everyone</h2>
-            <Link to="/job-feed" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
-              View all <ArrowRight className="w-3 h-3" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4">
+            <div>
+              <h2 className="section-title text-base sm:text-lg flex items-center gap-2">
+                <span>🔥 Latest Community Updates</span>
+                <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">
+                  {filteredNotifications.length}
+                </span>
+              </h2>
+              <p className="text-xs text-[#9898b8]">Real-time notifications of new jobs and walk-in drives shared by community members</p>
+            </div>
+
+            <Link to="/job-feed" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-medium">
+              View all in Job Feed <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
+
+          {/* Filter Chips */}
+          <div className="flex items-center gap-2 mb-3.5 overflow-x-auto pb-1">
+            <button
+              onClick={() => setNotificationFilter('all')}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                notificationFilter === 'all'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-[#1c1c28] text-[#9898b8] border border-[#2a2a3d] hover:border-indigo-500/40 hover:text-[#f0f0ff]'
+              }`}
+            >
+              All Updates ({notifications.length})
+            </button>
+            <button
+              onClick={() => setNotificationFilter('jobs')}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
+                notificationFilter === 'jobs'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-[#1c1c28] text-[#9898b8] border border-[#2a2a3d] hover:border-indigo-500/40 hover:text-[#f0f0ff]'
+              }`}
+            >
+              <Briefcase className="w-3 h-3" /> Jobs ({notifications.filter(n => n.type === 'job').length})
+            </button>
+            <button
+              onClick={() => setNotificationFilter('walkins')}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
+                notificationFilter === 'walkins'
+                  ? 'bg-cyan-600 text-white'
+                  : 'bg-[#1c1c28] text-[#9898b8] border border-[#2a2a3d] hover:border-indigo-500/40 hover:text-[#f0f0ff]'
+              }`}
+            >
+              <MapPin className="w-3 h-3 text-cyan-400" /> Walk-ins ({notifications.filter(n => n.type === 'walkin').length})
+            </button>
+          </div>
+
           {loading ? (
             <div className="flex flex-col gap-3">
-              {[1,2,3].map(i => <div key={i} className="card h-20 animate-pulse bg-[#1c1c28]" />)}
+              {[1, 2, 3].map(i => <div key={i} className="card h-24 animate-pulse bg-[#1c1c28]" />)}
             </div>
-          ) : recentShared.length === 0 ? (
-            <div className="card text-center py-8">
-              <p className="text-[#9898b8] text-sm">No shared jobs yet.</p>
-              <p className="text-[#6666a0] text-xs mt-1">Be the first to share a job!</p>
+          ) : filteredNotifications.length === 0 ? (
+            <div className="card text-center py-10">
+              <Briefcase className="w-10 h-10 text-[#6666a0] mx-auto mb-2" />
+              <p className="text-[#f0f0ff] font-medium text-sm">No community updates yet</p>
+              <p className="text-[#9898b8] text-xs mt-1">Be the first to share an opportunity with the community!</p>
+              <Link to="/job-feed" className="btn-primary text-xs mx-auto mt-3 self-center inline-flex">
+                <Plus className="w-3.5 h-3.5" /> Share Opportunity
+              </Link>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {recentShared.map(job => (
-                <div key={job.id} className="card-hover flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                    <Briefcase className="w-4 h-4 text-indigo-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-[#f0f0ff] text-sm truncate">{job.company}</p>
-                    <p className="text-[#9898b8] text-xs truncate">{job.job_title}</p>
-                    <div className="flex flex-wrap items-center gap-2 mt-1">
-                      {job.location && <span className="text-xs text-[#6666a0] flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>}
-                      {job.profile && <span className="text-xs text-[#6666a0]">by {(job.profile as {name:string}).name}</span>}
-                      <span className="text-xs text-[#6666a0]">{formatDate(job.created_at)}</span>
+              {filteredNotifications.map(item => (
+                <div
+                  key={item.id}
+                  className="card-hover p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border transition-all"
+                >
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      item.type === 'job'
+                        ? 'bg-indigo-500/10 border border-indigo-500/20 text-indigo-400'
+                        : 'bg-cyan-500/10 border border-cyan-500/20 text-cyan-400'
+                    }`}>
+                      {item.type === 'job' ? <Briefcase className="w-5 h-5" /> : <MapPin className="w-5 h-5" />}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                          item.type === 'job'
+                            ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+                            : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                        }`}>
+                          {item.type === 'job' ? '💼 Job Opening' : '📍 Walk-in Drive'}
+                        </span>
+                        <span className="text-[11px] text-[#9898b8]">
+                          Shared by <strong className="text-[#f0f0ff]">{item.authorName}</strong>
+                        </span>
+                        <span className="text-[11px] text-[#6666a0]">
+                          • {formatDate(item.createdAt)}
+                        </span>
+                      </div>
+
+                      <p className="font-semibold text-[#f0f0ff] text-sm sm:text-base leading-tight truncate">
+                        {item.company} — <span className="text-[#9898b8] font-normal">{item.title}</span>
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-[#9898b8]">
+                        {item.location && <span>📍 {item.location}</span>}
+                        {item.date && <span className="text-cyan-300 font-medium">📅 Drive Date: {formatDate(item.date)}</span>}
+                        {item.startTime && <span>🕐 {item.startTime}</span>}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-1.5 flex-shrink-0">
-                    <a href={job.job_url} target="_blank" rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg bg-[#232334] hover:bg-indigo-500/20 text-[#9898b8] hover:text-indigo-300 transition-colors"
-                      title="Open Job">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                    <button onClick={() => saveJob(job)}
-                      className="p-1.5 rounded-lg bg-[#232334] hover:bg-emerald-500/20 text-[#9898b8] hover:text-emerald-300 transition-colors"
-                      title="Save to My Jobs">
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-[#2a2a3d]">
+                    {item.url && (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-primary text-xs py-1.5 px-3 flex-1 sm:flex-initial justify-center"
+                        title="Open Link"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>{item.type === 'walkin' ? 'Register' : 'Open'}</span>
+                      </a>
+                    )}
+                    <button
+                      onClick={() => {
+                        if (item.type === 'job') saveJob(item.originalItem as Job);
+                        else saveWalkin(item.originalItem as WalkinDrive);
+                      }}
+                      className="btn-secondary text-xs py-1.5 px-3 flex-1 sm:flex-initial justify-center hover:border-emerald-500/40 hover:text-emerald-300"
+                      title="Save to your list"
+                    >
                       <BookmarkPlus className="w-3.5 h-3.5" />
+                      <span>Save</span>
                     </button>
                   </div>
                 </div>
@@ -272,48 +464,43 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Right column */}
+        {/* Right column: Community Scoreboard & Motivation */}
         <div className="flex flex-col gap-6">
-          {/* Jobs from Friends */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="section-title">👥 Jobs From Friends</h2>
-              <Link to="/job-feed?tab=friends" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
-                View all <ArrowRight className="w-3 h-3" />
-              </Link>
+          <div className="card bg-gradient-to-br from-indigo-950/40 via-[#1c1c28] to-[#1c1c28] border-indigo-500/30 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <span className="p-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <Award className="w-5 h-5" />
+              </span>
+              <span className="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+                Leaderboard
+              </span>
             </div>
-            {loading ? (
-              <div className="card h-24 animate-pulse" />
-            ) : friendJobs.length === 0 ? (
-              <div className="card text-center py-6">
-                <p className="text-[#9898b8] text-xs">No friend jobs yet.</p>
-                <Link to="/friends" className="text-xs text-indigo-400 hover:text-indigo-300 mt-1 inline-block">
-                  Find friends →
-                </Link>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {friendJobs.map(job => (
-                  <div key={job.id} className="card-hover p-3">
-                    <p className="text-xs text-[#9898b8] mb-0.5">
-                      <span className="text-indigo-300">{(job.profile as {name:string})?.name}</span> shared:
-                    </p>
-                    <p className="text-sm font-medium text-[#f0f0ff]">{job.company} — {job.job_title}</p>
-                    <div className="flex gap-1.5 mt-2">
-                      <a href={job.job_url} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs py-1 px-2">
-                        <ExternalLink className="w-3 h-3" /> Open
-                      </a>
-                      <button onClick={() => saveJob(job)} className="btn-secondary text-xs py-1 px-2">
-                        <BookmarkPlus className="w-3 h-3" /> Save
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <h3 className="font-bold text-[#f0f0ff] text-base mb-1">Earn Scout Points & Badges</h3>
+            <p className="text-xs text-[#9898b8] mb-4">
+              Help fellow candidates! Share verified job links (+10 pts) and walk-in drives (+15 pts) to top the community scoreboard.
+            </p>
+            <Link
+              to="/job-feed?tab=scoreboard"
+              className="btn-primary text-xs py-2 w-full justify-center shadow-lg shadow-indigo-600/20"
+            >
+              🏆 View Scoreboard & Rank
+            </Link>
+          </div>
+
+          <div className="card p-4">
+            <h3 className="font-semibold text-sm text-[#f0f0ff] mb-2 flex items-center gap-2">
+              <Bell className="w-4 h-4 text-indigo-400" /> Walk-in Drive Reminders
+            </h3>
+            <p className="text-xs text-[#9898b8] mb-3">
+              Get automated reminders sent straight to your email before upcoming walk-ins.
+            </p>
+            <Link to="/walkins" className="btn-secondary text-xs py-2 w-full justify-center">
+              Manage My Walk-ins
+            </Link>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
