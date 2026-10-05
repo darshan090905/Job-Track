@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import {
   Briefcase, CheckCircle, ClipboardList, MessageSquare,
   Award, XCircle, MapPin, Bell, Plus, ExternalLink,
-  BookmarkPlus, AlertTriangle, ArrowRight, Clock
+  BookmarkPlus, AlertTriangle, ArrowRight, Clock,
+  Trophy, Medal, Sparkles, Star, ChevronRight, FileText,
+  BarChart3, UserCheck, Flame
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
-import { Job, WalkinDrive } from '../../types';
+import { Job, WalkinDrive, Profile } from '../../types';
 import { JOB_STATUS_COLORS, JOB_STATUS_LABELS } from '../../utils/constants';
 import { formatDate, isDateToday, isDateTomorrow } from '../../utils/helpers';
 import { useToast } from '../../hooks/useToast';
@@ -23,14 +25,46 @@ interface Stats {
   followups: number;
 }
 
+export interface ContributorScore {
+  userId: string;
+  name: string;
+  avatarUrl?: string;
+  jobsCount: number;
+  walkinsCount: number;
+  totalPoints: number;
+  rank: number;
+  badge: {
+    title: string;
+    icon: string;
+    color: string;
+    bg: string;
+  };
+}
+
 export default function DashboardPage() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [stats, setStats] = useState<Stats>({ total: 0, applied: 0, assessment: 0, interview: 0, offer: 0, rejected: 0, walkins: 0, followups: 0 });
-  const [recentShared, setRecentShared] = useState<Job[]>([]);
-  const [friendJobs, setFriendJobs] = useState<Job[]>([]);
   const [upcomingWalkins, setUpcomingWalkins] = useState<WalkinDrive[]>([]);
+  const [notifications, setNotifications] = useState<CommunityNotification[]>([]);
+  const [notificationFilter, setNotificationFilter] = useState<'all' | 'jobs' | 'walkins'>('all');
+  const [leaderboard, setLeaderboard] = useState<ContributorScore[]>([]);
   const [loading, setLoading] = useState(true);
+
+  interface CommunityNotification {
+    id: string;
+    type: 'job' | 'walkin';
+    title: string;
+    company: string;
+    location?: string;
+    url?: string;
+    date?: string;
+    startTime?: string;
+    createdAt: string;
+    authorName: string;
+    authorAvatar?: string;
+    originalItem: Job | WalkinDrive;
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -39,7 +73,7 @@ export default function DashboardPage() {
 
   async function loadDashboard() {
     setLoading(true);
-    await Promise.all([loadStats(), loadSharedJobs(), loadUpcomingWalkins()]);
+    await Promise.all([loadStats(), loadSharedJobs(), loadUpcomingWalkins(), loadLeaderboard()]);
     setLoading(false);
   }
 
@@ -63,53 +97,116 @@ export default function DashboardPage() {
     setStats(prev => ({ ...prev, walkins: count || 0 }));
   }
 
-  interface CommunityNotification {
-    id: string;
-    type: 'job' | 'walkin';
-    title: string;
-    company: string;
-    location?: string;
-    url?: string;
-    date?: string;
-    startTime?: string;
-    createdAt: string;
-    authorName: string;
-    authorAvatar?: string;
-    originalItem: Job | WalkinDrive;
+  function getBadge(points: number) {
+    if (points >= 100) return { title: 'Legendary Scout', icon: '👑', color: 'text-amber-400', bg: 'bg-amber-500/15 border-amber-500/30' };
+    if (points >= 50) return { title: 'Master Contributor', icon: '🏆', color: 'text-purple-400', bg: 'bg-purple-500/15 border-purple-500/30' };
+    if (points >= 25) return { title: 'Community Star', icon: '⭐', color: 'text-indigo-400', bg: 'bg-indigo-500/15 border-indigo-500/30' };
+    if (points >= 10) return { title: 'Active Scout', icon: '🚀', color: 'text-emerald-400', bg: 'bg-emerald-500/15 border-emerald-500/30' };
+    return { title: 'New Scout', icon: '🌱', color: 'text-[#9898b8]', bg: 'bg-[#1c1c28] border-[#2a2a3d]' };
   }
 
-  const [notifications, setNotifications] = useState<CommunityNotification[]>([]);
-  const [notificationFilter, setNotificationFilter] = useState<'all' | 'jobs' | 'walkins'>('all');
+  async function loadLeaderboard() {
+    try {
+      const [jobsRes, walkinsRes] = await Promise.all([
+        supabase.from('jobs').select('user_id').in('visibility', ['everyone', 'friends']),
+        supabase.from('walkin_drives').select('user_id').in('visibility', ['everyone', 'friends'])
+      ]);
+
+      const jobs = jobsRes.data || [];
+      const walkins = walkinsRes.data || [];
+
+      const userJobCounts: Record<string, number> = {};
+      const userWalkinCounts: Record<string, number> = {};
+      const allUserIds = new Set<string>();
+
+      jobs.forEach(j => {
+        if (j.user_id) {
+          userJobCounts[j.user_id] = (userJobCounts[j.user_id] || 0) + 1;
+          allUserIds.add(j.user_id);
+        }
+      });
+
+      walkins.forEach(w => {
+        if (w.user_id) {
+          userWalkinCounts[w.user_id] = (userWalkinCounts[w.user_id] || 0) + 1;
+          allUserIds.add(w.user_id);
+        }
+      });
+
+      if (user && !allUserIds.has(user.id)) {
+        allUserIds.add(user.id);
+      }
+
+      const userIdsArray = Array.from(allUserIds);
+      let profileMap: Record<string, Profile> = {};
+
+      if (userIdsArray.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .in('id', userIdsArray);
+
+        if (profiles) {
+          profileMap = Object.fromEntries(profiles.map(p => [p.id, p as Profile]));
+        }
+      }
+
+      const scores: ContributorScore[] = userIdsArray.map(id => {
+        const jobsCount = userJobCounts[id] || 0;
+        const walkinsCount = userWalkinCounts[id] || 0;
+        const totalPoints = (jobsCount * 10) + (walkinsCount * 15);
+        const p = profileMap[id];
+        const name = p?.name || (id === user?.id ? (profile?.name || 'You') : 'Anonymous Scout');
+
+        return {
+          userId: id,
+          name,
+          avatarUrl: p?.avatar_url,
+          jobsCount,
+          walkinsCount,
+          totalPoints,
+          rank: 0,
+          badge: getBadge(totalPoints),
+        };
+      });
+
+      scores.sort((a, b) => b.totalPoints - a.totalPoints || b.jobsCount - a.jobsCount);
+      scores.forEach((s, idx) => {
+        s.rank = idx + 1;
+      });
+
+      setLeaderboard(scores);
+    } catch (err) {
+      console.error('loadLeaderboard error:', err);
+    }
+  }
 
   async function loadSharedJobs() {
     if (!user) return;
     try {
-      // 1. Fetch public / friends' jobs
       const { data: jobsData, error: jobsErr } = await supabase
         .from('jobs')
         .select('*')
         .in('visibility', ['everyone', 'friends'])
         .neq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (jobsErr) console.error('Dashboard jobs fetch error:', jobsErr);
 
-      // 2. Fetch public / friends' walk-in drives
       const { data: walkinsData, error: wErr } = await supabase
         .from('walkin_drives')
         .select('*')
         .in('visibility', ['everyone', 'friends'])
         .neq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (wErr) console.error('Dashboard walkins fetch error:', wErr);
 
       const jobs = jobsData || [];
       const walkins = walkinsData || [];
 
-      // 3. Collect author IDs
       const userIds = new Set<string>();
       jobs.forEach(j => userIds.add(j.user_id));
       walkins.forEach(w => userIds.add(w.user_id));
@@ -126,7 +223,6 @@ export default function DashboardPage() {
         }
       }
 
-      // 4. Transform into unified Community Notification list
       const feedItems: CommunityNotification[] = [
         ...jobs.map(j => ({
           id: `job-${j.id}`,
@@ -156,7 +252,6 @@ export default function DashboardPage() {
         })),
       ];
 
-      // Sort by newest created_at
       feedItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setNotifications(feedItems);
     } catch (err) {
@@ -230,6 +325,23 @@ export default function DashboardPage() {
     if (notificationFilter === 'walkins') return n.type === 'walkin';
     return true;
   });
+
+  // Top 5 items displayed to keep Dashboard clean and prevent overflow
+  const topNotifications = filteredNotifications.slice(0, 5);
+
+  const currentUserScore = leaderboard.find(s => s.userId === user?.id) || {
+    userId: user?.id || '',
+    name: profile?.name || 'You',
+    avatarUrl: profile?.avatar_url,
+    jobsCount: 0,
+    walkinsCount: 0,
+    totalPoints: 0,
+    rank: leaderboard.length > 0 ? leaderboard.length + 1 : 1,
+    badge: getBadge(0),
+  };
+
+  const topLeaders = leaderboard.slice(0, 4);
+  const isUserInTop = topLeaders.some(l => l.userId === user?.id);
 
   const statCards = [
     { label: 'Total Jobs', value: stats.total, icon: Briefcase, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
@@ -320,22 +432,21 @@ export default function DashboardPage() {
         </div>
       )}
 
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Latest Opportunities & Notifications */}
+        {/* Latest Opportunities & Notifications (Limited to Top 5) */}
         <div className="lg:col-span-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4">
             <div>
               <h2 className="section-title text-base sm:text-lg flex items-center gap-2">
                 <span>🔥 Latest Community Updates</span>
-                <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">
-                  {filteredNotifications.length}
+                <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-500/30 font-semibold">
+                  {filteredNotifications.length > 5 ? `Top 5 of ${filteredNotifications.length}` : `${filteredNotifications.length}`}
                 </span>
               </h2>
-              <p className="text-xs text-[#9898b8]">Real-time notifications of new jobs and walk-in drives shared by community members</p>
+              <p className="text-xs text-[#9898b8]">Top 5 newly updated jobs and walk-in drives shared by community members</p>
             </div>
 
-            <Link to="/job-feed" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-medium">
+            <Link to="/job-feed" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-medium flex-shrink-0">
               View all in Job Feed <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -346,7 +457,7 @@ export default function DashboardPage() {
               onClick={() => setNotificationFilter('all')}
               className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                 notificationFilter === 'all'
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'bg-[#1c1c28] text-[#9898b8] border border-[#2a2a3d] hover:border-indigo-500/40 hover:text-[#f0f0ff]'
               }`}
             >
@@ -356,7 +467,7 @@ export default function DashboardPage() {
               onClick={() => setNotificationFilter('jobs')}
               className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
                 notificationFilter === 'jobs'
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'bg-[#1c1c28] text-[#9898b8] border border-[#2a2a3d] hover:border-indigo-500/40 hover:text-[#f0f0ff]'
               }`}
             >
@@ -366,7 +477,7 @@ export default function DashboardPage() {
               onClick={() => setNotificationFilter('walkins')}
               className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
                 notificationFilter === 'walkins'
-                  ? 'bg-cyan-600 text-white'
+                  ? 'bg-cyan-600 text-white shadow-sm'
                   : 'bg-[#1c1c28] text-[#9898b8] border border-[#2a2a3d] hover:border-indigo-500/40 hover:text-[#f0f0ff]'
               }`}
             >
@@ -378,7 +489,7 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-3">
               {[1, 2, 3].map(i => <div key={i} className="card h-24 animate-pulse bg-[#1c1c28]" />)}
             </div>
-          ) : filteredNotifications.length === 0 ? (
+          ) : topNotifications.length === 0 ? (
             <div className="card text-center py-10">
               <Briefcase className="w-10 h-10 text-[#6666a0] mx-auto mb-2" />
               <p className="text-[#f0f0ff] font-medium text-sm">No community updates yet</p>
@@ -389,7 +500,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {filteredNotifications.map(item => (
+              {topNotifications.map(item => (
                 <div
                   key={item.id}
                   className="card-hover p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border transition-all"
@@ -460,39 +571,220 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
+
+              {/* Overflow notice & View More in Job Feed */}
+              {filteredNotifications.length > 5 && (
+                <div className="card bg-gradient-to-r from-[#1c1c28] to-[#161622] border-dashed border-[#2a2a3d] p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left mt-1">
+                  <div>
+                    <p className="text-xs sm:text-sm font-semibold text-[#f0f0ff] flex items-center justify-center sm:justify-start gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                      Showing top 5 newly updated community opportunities
+                    </p>
+                    <p className="text-[11px] sm:text-xs text-[#9898b8] mt-0.5">
+                      {filteredNotifications.length - 5} more updates available in Job Feed
+                    </p>
+                  </div>
+                  <Link
+                    to="/job-feed"
+                    className="btn-primary text-xs py-2 px-3.5 flex-shrink-0 flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+                  >
+                    <span>View All {filteredNotifications.length} in Job Feed</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Right column: Community Scoreboard & Motivation */}
-        <div className="flex flex-col gap-6">
-          <div className="card bg-gradient-to-br from-indigo-50/90 via-purple-50/50 to-white dark:from-indigo-950/40 dark:via-[#1c1c28] dark:to-[#1c1c28] border-indigo-200 dark:border-indigo-500/30 p-5 shadow-sm dark:shadow-none">
-            <div className="flex items-center justify-between mb-3">
-              <span className="p-2 rounded-xl bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30">
-                <Award className="w-5 h-5" />
-              </span>
-              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-500/30">
-                Leaderboard
-              </span>
+        {/* Right column: Integrated Scoreboard & Ranks Side Layout + Handy Tools */}
+        <div className="flex flex-col gap-5">
+          {/* Live Scoreboard & Rank Card */}
+          <div className="card bg-gradient-to-br from-indigo-950/40 via-[#1c1c28] to-[#1c1c28] border-indigo-500/30 p-4 sm:p-5 shadow-lg shadow-black/20">
+            <div className="flex items-center justify-between mb-3.5">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  <Trophy className="w-4 h-4" />
+                </span>
+                <div>
+                  <h3 className="font-bold text-[#f0f0ff] text-sm sm:text-base leading-tight">Scoreboard & Ranks</h3>
+                  <p className="text-[11px] text-[#9898b8]">Live community hunter ranks</p>
+                </div>
+              </div>
+              <Link
+                to="/job-feed?tab=scoreboard"
+                className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5"
+              >
+                Full Board <ChevronRight className="w-3 h-3" />
+              </Link>
             </div>
-            <h3 className="font-bold text-slate-900 dark:text-[#f0f0ff] text-base mb-1">Earn Scout Points & Badges</h3>
-            <p className="text-xs text-slate-600 dark:text-[#9898b8] mb-4">
-              Help fellow candidates! Share verified job links (+10 pts) and walk-in drives (+15 pts) to top the community scoreboard.
-            </p>
-            <Link
-              to="/job-feed?tab=scoreboard"
-              className="btn-primary text-xs py-2 w-full justify-center shadow-lg shadow-indigo-600/20"
-            >
-              🏆 View Scoreboard & Rank
-            </Link>
+
+            {/* Current User Status Banner */}
+            <div className="rounded-xl bg-[#12121a]/90 border border-[#2a2a3d] p-3 mb-4">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center font-black text-xs text-indigo-300 flex-shrink-0">
+                    {currentUserScore.rank === 1 ? '👑' : currentUserScore.rank === 2 ? '🥈' : currentUserScore.rank === 3 ? '🥉' : `#${currentUserScore.rank}`}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-xs sm:text-sm text-[#f0f0ff] truncate">
+                      {profile?.name || 'You'} <span className="text-[10px] text-indigo-400 font-normal">(You)</span>
+                    </p>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.2 rounded-md border ${currentUserScore.badge.bg} ${currentUserScore.badge.color}`}>
+                      {currentUserScore.badge.icon} {currentUserScore.badge.title}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <span className="text-base font-black text-amber-400">{currentUserScore.totalPoints}</span>
+                  <span className="text-[10px] text-[#9898b8] ml-0.5">pts</span>
+                </div>
+              </div>
+
+              {/* Point stats chips */}
+              <div className="grid grid-cols-2 gap-1.5 text-[10px] text-[#9898b8] pt-2 border-t border-[#2a2a3d]/80">
+                <span className="truncate">💼 {currentUserScore.jobsCount} Jobs (+10 pts)</span>
+                <span className="truncate text-cyan-300">📍 {currentUserScore.walkinsCount} Walk-ins (+15)</span>
+              </div>
+            </div>
+
+            {/* Top Leaders Mini List */}
+            <div className="mb-3.5">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-[#9898b8] uppercase tracking-wider mb-2 px-1">
+                <span>Top Scouts</span>
+                <span>Score</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {topLeaders.length === 0 ? (
+                  <p className="text-xs text-[#9898b8] text-center py-2">No contributions recorded yet.</p>
+                ) : (
+                  topLeaders.map(item => {
+                    const isMe = item.userId === user?.id;
+                    return (
+                      <div
+                        key={item.userId}
+                        className={`flex items-center justify-between p-2 rounded-lg text-xs transition-colors ${
+                          isMe
+                            ? 'bg-indigo-500/15 border border-indigo-500/30'
+                            : 'bg-[#12121a]/60 hover:bg-[#12121a] border border-[#2a2a3d]/60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-5 text-center font-bold text-[11px]">
+                            {item.rank === 1 ? '👑' : item.rank === 2 ? '🥈' : item.rank === 3 ? '🥉' : `#${item.rank}`}
+                          </span>
+                          <div className="w-6 h-6 rounded-md bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center font-bold text-[10px] text-[#f0f0ff] overflow-hidden flex-shrink-0">
+                            {item.avatarUrl ? (
+                              <img src={item.avatarUrl} alt={item.name} className="w-full h-full object-cover" />
+                            ) : (
+                              item.name.charAt(0).toUpperCase()
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-[#f0f0ff] text-[11px] truncate flex items-center gap-1">
+                              {item.name}
+                              {isMe && <span className="text-[9px] text-indigo-400 font-normal">(You)</span>}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-amber-400 text-xs flex-shrink-0">{item.totalPoints} pts</span>
+                      </div>
+                    );
+                  })
+                )}
+
+                {/* Show current user row at bottom if not in top 4 */}
+                {!isUserInTop && currentUserScore && (
+                  <div className="flex items-center justify-between p-2 rounded-lg text-xs bg-indigo-500/15 border border-indigo-500/40 mt-0.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-5 text-center font-bold text-[11px] text-indigo-300">#{currentUserScore.rank}</span>
+                      <div className="w-6 h-6 rounded-md bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center font-bold text-[10px] text-[#f0f0ff] flex-shrink-0">
+                        {profile?.name ? profile.name.charAt(0).toUpperCase() : 'Y'}
+                      </div>
+                      <p className="font-bold text-[#f0f0ff] text-[11px] truncate">
+                        {profile?.name || 'You'} <span className="text-[9px] text-indigo-400 font-normal">(You)</span>
+                      </p>
+                    </div>
+                    <span className="font-bold text-amber-400 text-xs flex-shrink-0">{currentUserScore.totalPoints} pts</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Share to Earn Points & View Scoreboard */}
+            <div className="flex flex-col gap-2 pt-2 border-t border-[#2a2a3d]">
+              <Link
+                to="/job-feed?tab=scoreboard"
+                className="btn-primary text-xs py-2 w-full justify-center shadow-md shadow-indigo-600/20"
+              >
+                🏆 Open Full Leaderboard & Badges
+              </Link>
+              <div className="flex items-center gap-1.5">
+                <Link
+                  to="/applications?add=true"
+                  className="btn-secondary text-[11px] py-1.5 flex-1 justify-center hover:border-indigo-500/40"
+                  title="Share a job to earn 10 points"
+                >
+                  + Share Job (+10)
+                </Link>
+                <Link
+                  to="/walkins?add=true"
+                  className="btn-secondary text-[11px] py-1.5 flex-1 justify-center text-cyan-300 hover:border-cyan-500/40"
+                  title="Share a walk-in to earn 15 points"
+                >
+                  + Walk-in (+15)
+                </Link>
+              </div>
+            </div>
           </div>
 
+          {/* Quick Resumes & Shortcuts (Handy downside option) */}
+          <div className="card p-4 border-[#2a2a3d]">
+            <h3 className="font-semibold text-xs uppercase tracking-wider text-[#9898b8] mb-3 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> Handy Shortcuts & Resumes
+            </h3>
+            <div className="flex flex-col gap-2">
+              <Link
+                to="/resumes"
+                className="flex items-center justify-between p-2.5 rounded-lg bg-[#12121a] hover:bg-[#1c1c28] border border-[#2a2a3d] hover:border-purple-500/40 transition-all text-xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-md bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                    <FileText className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#f0f0ff] leading-tight">ATS Resumes</p>
+                    <p className="text-[10px] text-[#9898b8]">Manage versions & tailored CVs</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-[#6666a0]" />
+              </Link>
+
+              <Link
+                to="/analytics"
+                className="flex items-center justify-between p-2.5 rounded-lg bg-[#12121a] hover:bg-[#1c1c28] border border-[#2a2a3d] hover:border-indigo-500/40 transition-all text-xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <BarChart3 className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#f0f0ff] leading-tight">Analytics & Funnel</p>
+                    <p className="text-[10px] text-[#9898b8]">Interviews, status & conversion</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-[#6666a0]" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Walk-in Drive Reminders */}
           <div className="card p-4">
-            <h3 className="font-semibold text-sm text-[#f0f0ff] mb-2 flex items-center gap-2">
-              <Bell className="w-4 h-4 text-indigo-400" /> Walk-in Drive Reminders
+            <h3 className="font-semibold text-sm text-[#f0f0ff] mb-1.5 flex items-center gap-2">
+              <Bell className="w-4 h-4 text-cyan-400" /> Walk-in Drive Reminders
             </h3>
             <p className="text-xs text-[#9898b8] mb-3">
-              Get automated reminders sent straight to your email before upcoming walk-ins.
+              Get automated notifications sent straight to your email before upcoming walk-ins.
             </p>
             <Link to="/walkins" className="btn-secondary text-xs py-2 w-full justify-center">
               Manage My Walk-ins
@@ -503,4 +795,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
