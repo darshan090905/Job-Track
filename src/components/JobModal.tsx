@@ -5,12 +5,19 @@ import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { Job, Resume, JobStatus, Visibility } from '../types';
 import { JOB_STATUS_LABELS, JOB_SOURCES, VISIBILITY_LABELS } from '../utils/constants';
+import { normalizeJobUrl } from '../utils/helpers';
 
 interface Props {
   job?: Job;
   resumes: Resume[];
   onClose: () => void;
   onSaved: () => void;
+}
+
+interface DuplicateMatch {
+  job: Job;
+  isCommunity: boolean;
+  authorName?: string;
 }
 
 const statuses: JobStatus[] = ['saved', 'applied', 'assessment', 'interview', 'offer', 'rejected', 'withdrawn'];
@@ -21,7 +28,7 @@ export default function JobModal({ job, resumes: initialResumes, onClose, onSave
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
-  const [duplicate, setDuplicate] = useState<Job | null>(null);
+  const [duplicate, setDuplicate] = useState<DuplicateMatch | null>(null);
   const [resumes, setResumes] = useState<Resume[]>(initialResumes);
 
   // Resume upload state
@@ -62,27 +69,53 @@ export default function JobModal({ job, resumes: initialResumes, onClose, onSave
     }
   }
 
-  async function checkDuplicate() {
+  async function checkDuplicate(): Promise<DuplicateMatch | null> {
     if (!user || job) return null;
-    // Check by URL
+    const targetNormUrl = normalizeJobUrl(form.job_url);
+
+    // 1. Check user's own applications first
     if (form.job_url) {
-      const { data } = await supabase.from('jobs').select('*').eq('user_id', user.id).eq('job_url', form.job_url).single();
-      if (data) return data as Job;
+      const { data: myJobs } = await supabase.from('jobs').select('*').eq('user_id', user.id);
+      if (myJobs) {
+        const found = myJobs.find(j => normalizeJobUrl(j.job_url) === targetNormUrl);
+        if (found) return { job: found as Job, isCommunity: false };
+      }
     }
-    // Check by company + title
     if (form.company && form.job_title) {
       const { data } = await supabase.from('jobs').select('*')
-        .eq('user_id', user.id).ilike('company', form.company).ilike('job_title', form.job_title).single();
-      if (data) return data as Job;
+        .eq('user_id', user.id).ilike('company', form.company.trim()).ilike('job_title', form.job_title.trim()).single();
+      if (data) return { job: data as Job, isCommunity: false };
     }
+
+    // 2. Check community if sharing publicly (visibility !== 'private')
+    if (form.visibility !== 'private' && form.job_url) {
+      const { data: publicJobs } = await supabase.from('jobs')
+        .select('*')
+        .neq('user_id', user.id)
+        .in('visibility', ['everyone', 'friends'])
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (publicJobs) {
+        const found = publicJobs.find(j => normalizeJobUrl(j.job_url) === targetNormUrl);
+        if (found) {
+          // Fetch author name
+          let authorName = 'Another member';
+          const { data: authorProf } = await supabase.from('profiles').select('name').eq('id', found.user_id).single();
+          if (authorProf?.name) authorName = authorProf.name;
+          return { job: found as Job, isCommunity: true, authorName };
+        }
+      }
+    }
+
     return null;
   }
 
-  async function handleSubmit(e: React.FormEvent, forceAdd = false) {
+  async function handleSubmit(e: React.FormEvent, forceAdd = false, overrideVisibility?: Visibility) {
     e.preventDefault();
     if (!user) return;
 
-    if (!job && !forceAdd) {
+    if (!job && !forceAdd && !overrideVisibility) {
       const dup = await checkDuplicate();
       if (dup) {
         setDuplicate(dup);
@@ -157,7 +190,7 @@ export default function JobModal({ job, resumes: initialResumes, onClose, onSave
       notes: form.notes.trim() || null,
       applied_date: form.applied_date || null,
       follow_up_date: form.follow_up_date || null,
-      visibility: form.visibility,
+      visibility: overrideVisibility || form.visibility,
     };
 
     if (job) {
@@ -182,7 +215,7 @@ export default function JobModal({ job, resumes: initialResumes, onClose, onSave
           event_date: form.applied_date,
         });
       }
-      toast('Job added!', 'success');
+      toast(overrideVisibility === 'private' ? 'Saved to My Applications as Private (duplicate in community)' : 'Job added!', 'success');
     }
     setLoading(false);
     onSaved();
@@ -191,27 +224,56 @@ export default function JobModal({ job, resumes: initialResumes, onClose, onSave
   if (duplicate) {
     return (
       <div className="modal-overlay">
-        <div className="modal-content p-6 max-w-sm">
+        <div className="modal-content p-6 max-w-md">
           <div className="flex items-start gap-3 mb-4">
             <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-[#f0f0ff]">Possible Duplicate Job</h3>
-              <p className="text-sm text-[#9898b8] mt-1">This job might already be in your applications:</p>
+              <h3 className="font-semibold text-[#f0f0ff]">
+                {duplicate.isCommunity ? 'Job Link Already in Community Feed' : 'Possible Duplicate Job'}
+              </h3>
+              <p className="text-xs sm:text-sm text-[#9898b8] mt-1">
+                {duplicate.isCommunity
+                  ? `This job link was already shared by ${duplicate.authorName || 'another community member'}.`
+                  : 'This job might already be in your applications list:'}
+              </p>
             </div>
           </div>
-          <div className="card mb-4">
-            <p className="font-medium text-[#f0f0ff]">{duplicate.company}</p>
-            <p className="text-sm text-[#9898b8]">{duplicate.job_title}</p>
-            <span className="text-xs text-[#6666a0] mt-1 block">Added earlier</span>
+          <div className="card mb-4 bg-[#12121a] border-[#2a2a3d]">
+            <p className="font-semibold text-[#f0f0ff] text-sm">{duplicate.job.company}</p>
+            <p className="text-xs text-[#9898b8] mt-0.5">{duplicate.job.job_title}</p>
+            {duplicate.isCommunity && (
+              <span className="text-[11px] text-indigo-400 mt-2 block">
+                Shared in Community • Avoids duplicate feed posts
+              </span>
+            )}
           </div>
           <div className="flex gap-2 flex-col">
-            <a href={`/applications`} className="btn-secondary justify-center text-sm">
-              <ExternalLink className="w-3.5 h-3.5" /> View Existing
-            </a>
-            <button onClick={e => handleSubmit(e as React.FormEvent, true)} className="btn-primary justify-center text-sm">
-              Add Anyway
-            </button>
-            <button onClick={() => setDuplicate(null)} className="text-sm text-[#9898b8] hover:text-[#f0f0ff] text-center py-1">
+            {duplicate.isCommunity ? (
+              <>
+                <button
+                  onClick={e => handleSubmit(e as React.FormEvent, true, 'private')}
+                  className="btn-primary justify-center text-xs sm:text-sm py-2"
+                >
+                  Save as Private Application
+                </button>
+                <a href="/job-feed" className="btn-secondary justify-center text-xs sm:text-sm py-2">
+                  <ExternalLink className="w-3.5 h-3.5" /> View in Job Feed
+                </a>
+              </>
+            ) : (
+              <>
+                <a href="/applications" className="btn-secondary justify-center text-xs sm:text-sm py-2">
+                  <ExternalLink className="w-3.5 h-3.5" /> View in Applications
+                </a>
+                <button
+                  onClick={e => handleSubmit(e as React.FormEvent, true)}
+                  className="btn-primary justify-center text-xs sm:text-sm py-2"
+                >
+                  Add Anyway
+                </button>
+              </>
+            )}
+            <button onClick={() => setDuplicate(null)} className="text-xs text-[#9898b8] hover:text-[#f0f0ff] text-center py-1.5 mt-1">
               Cancel
             </button>
           </div>

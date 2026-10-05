@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { Job, WalkinDrive, Profile } from '../../types';
 import { JOB_STATUS_COLORS, JOB_STATUS_LABELS } from '../../utils/constants';
-import { formatDate, isDateToday, isDateTomorrow } from '../../utils/helpers';
+import { formatDate, isDateToday, isDateTomorrow, normalizeJobUrl } from '../../utils/helpers';
 import { useToast } from '../../hooks/useToast';
 
 interface Stats {
@@ -223,7 +223,7 @@ export default function DashboardPage() {
         }
       }
 
-      const feedItems: CommunityNotification[] = [
+      const rawFeedItems: CommunityNotification[] = [
         ...jobs.map(j => ({
           id: `job-${j.id}`,
           type: 'job' as const,
@@ -252,7 +252,21 @@ export default function DashboardPage() {
         })),
       ];
 
-      feedItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      // Sort by newest created_at
+      rawFeedItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      // Deduplicate community notifications so identical links are not repeated
+      const seenFeedKeys = new Set<string>();
+      const feedItems: CommunityNotification[] = [];
+      for (const item of rawFeedItems) {
+        const normUrl = item.url ? normalizeJobUrl(item.url) : '';
+        const key = normUrl || `${item.company.toLowerCase().trim()}::${item.title.toLowerCase().trim()}`;
+        if (!seenFeedKeys.has(key)) {
+          seenFeedKeys.add(key);
+          feedItems.push(item);
+        }
+      }
+
       setNotifications(feedItems);
     } catch (err) {
       console.error('loadSharedJobs error:', err);

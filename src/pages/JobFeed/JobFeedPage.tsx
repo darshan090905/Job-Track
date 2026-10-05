@@ -9,7 +9,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { Job, WalkinDrive, Profile, Resume } from '../../types';
 import { JOB_SOURCES } from '../../utils/constants';
-import { formatDate, debounce } from '../../utils/helpers';
+import { formatDate, debounce, normalizeJobUrl } from '../../utils/helpers';
 import Scoreboard from '../../components/Scoreboard';
 import JobModal from '../../components/JobModal';
 import WalkinModal from '../../components/WalkinModal';
@@ -113,7 +113,7 @@ export default function JobFeedPage() {
         jobsQuery = jobsQuery.eq('visibility', 'friends').in('user_id', friendIds);
       }
 
-      const { data: jobsData, error: jobsErr } = await jobsQuery.limit(100);
+      const { data: rawJobsData, error: jobsErr } = await jobsQuery.limit(100);
       if (jobsErr) {
         console.error('Error fetching feed jobs:', jobsErr);
       }
@@ -136,10 +136,34 @@ export default function JobFeedPage() {
         }
         wQuery = wQuery.eq('visibility', 'friends').in('user_id', friendIds);
       }
-      const { data: wData, error: wErr } = await wQuery.limit(50);
+      const { data: rawWData, error: wErr } = await wQuery.limit(50);
       if (wErr) {
         console.error('Error fetching feed walkins:', wErr);
       }
+
+      // Deduplicate community jobs by URL or company+title
+      const seenJobKeys = new Set<string>();
+      const jobsData: typeof rawJobsData = [];
+      (rawJobsData || []).forEach(j => {
+        const normUrl = normalizeJobUrl(j.job_url);
+        const key = normUrl || `${j.company.toLowerCase().trim()}::${j.job_title.toLowerCase().trim()}`;
+        if (!seenJobKeys.has(key)) {
+          seenJobKeys.add(key);
+          jobsData.push(j);
+        }
+      });
+
+      // Deduplicate community walk-ins by registration URL or company+title+date
+      const seenWalkinKeys = new Set<string>();
+      const wData: typeof rawWData = [];
+      (rawWData || []).forEach(w => {
+        const normUrl = w.registration_url ? normalizeJobUrl(w.registration_url) : '';
+        const key = normUrl || `${w.company.toLowerCase().trim()}::${w.job_title.toLowerCase().trim()}::${w.date}`;
+        if (!seenWalkinKeys.has(key)) {
+          seenWalkinKeys.add(key);
+          wData.push(w);
+        }
+      });
 
       // 3. Collect author user IDs and fetch profiles
       const userIds = new Set<string>();

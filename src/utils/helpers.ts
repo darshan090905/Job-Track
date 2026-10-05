@@ -71,3 +71,30 @@ export function debounce<T extends (...args: any[]) => void>(fn: T, delay: numbe
   };
 }
 
+export function normalizeJobUrl(rawUrl?: string): string {
+  if (!rawUrl) return '';
+  try {
+    let clean = rawUrl.trim();
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+      clean = 'https://' + clean;
+    }
+    const u = new URL(clean);
+    // Strip common tracking and referrer query params
+    const trackingParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'ref', 'source', 'fbclid', 'gclid', 'igshid', 'trk', 'trackingid', 'midToken', 'mid'];
+    trackingParams.forEach(p => {
+      u.searchParams.delete(p);
+      u.searchParams.delete(p.toLowerCase());
+    });
+    // Remove trailing slash in pathname
+    let pathname = u.pathname;
+    if (pathname.endsWith('/') && pathname.length > 1) {
+      pathname = pathname.slice(0, -1);
+    }
+    u.pathname = pathname;
+    return (u.origin + u.pathname + (u.search ? u.search : '')).toLowerCase().replace(/\/$/, '');
+  } catch {
+    return (rawUrl || '').trim().toLowerCase().replace(/\/$/, '');
+  }
+}
+
+

@@ -1,16 +1,23 @@
 import React, { useState, useRef } from 'react';
-import { X, Loader2, Upload, Plus, CheckCircle, ChevronUp } from 'lucide-react';
+import { X, Loader2, Upload, Plus, CheckCircle, ChevronUp, AlertTriangle, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { WalkinDrive, Resume, Visibility } from '../types';
 import { VISIBILITY_LABELS } from '../utils/constants';
+import { normalizeJobUrl } from '../utils/helpers';
 
 interface Props {
   walkin?: WalkinDrive;
   resumes: Resume[];
   onClose: () => void;
   onSaved: () => void;
+}
+
+interface DuplicateWalkinMatch {
+  walkin: WalkinDrive;
+  isCommunity: boolean;
+  authorName?: string;
 }
 
 const visibilities: Visibility[] = ['private', 'friends', 'everyone'];
@@ -20,6 +27,7 @@ export default function WalkinModal({ walkin, resumes: initialResumes, onClose, 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [duplicate, setDuplicate] = useState<DuplicateWalkinMatch | null>(null);
   const [resumes, setResumes] = useState<Resume[]>(initialResumes);
 
   // Resume upload state
@@ -63,9 +71,70 @@ export default function WalkinModal({ walkin, resumes: initialResumes, onClose, 
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function checkDuplicate(): Promise<DuplicateWalkinMatch | null> {
+    if (!user || walkin) return null;
+    const targetNormUrl = form.registration_url ? normalizeJobUrl(form.registration_url) : '';
+
+    // 1. Check user's own walk-in drives
+    const { data: myWalkins } = await supabase.from('walkin_drives').select('*').eq('user_id', user.id);
+    if (myWalkins) {
+      if (targetNormUrl) {
+        const found = myWalkins.find(w => w.registration_url && normalizeJobUrl(w.registration_url) === targetNormUrl);
+        if (found) return { walkin: found as WalkinDrive, isCommunity: false };
+      }
+      const foundByDetails = myWalkins.find(w =>
+        w.company.trim().toLowerCase() === form.company.trim().toLowerCase() &&
+        w.job_title.trim().toLowerCase() === form.job_title.trim().toLowerCase() &&
+        w.date === form.date
+      );
+      if (foundByDetails) return { walkin: foundByDetails as WalkinDrive, isCommunity: false };
+    }
+
+    // 2. Check community if sharing publicly
+    if (form.visibility !== 'private') {
+      const { data: publicWalkins } = await supabase.from('walkin_drives')
+        .select('*')
+        .neq('user_id', user.id)
+        .in('visibility', ['everyone', 'friends'])
+        .gte('date', new Date().toISOString().split('T')[0])
+        .limit(100);
+
+      if (publicWalkins) {
+        let found: WalkinDrive | undefined;
+        if (targetNormUrl) {
+          found = publicWalkins.find(w => w.registration_url && normalizeJobUrl(w.registration_url) === targetNormUrl);
+        }
+        if (!found && form.company && form.job_title && form.date) {
+          found = publicWalkins.find(w =>
+            w.company.trim().toLowerCase() === form.company.trim().toLowerCase() &&
+            w.job_title.trim().toLowerCase() === form.job_title.trim().toLowerCase() &&
+            w.date === form.date
+          );
+        }
+        if (found) {
+          let authorName = 'Another community member';
+          const { data: authorProf } = await supabase.from('profiles').select('name').eq('id', found.user_id).single();
+          if (authorProf?.name) authorName = authorProf.name;
+          return { walkin: found as WalkinDrive, isCommunity: true, authorName };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  async function handleSubmit(e: React.FormEvent, forceAdd = false, overrideVisibility?: Visibility) {
     e.preventDefault();
     if (!user) return;
+
+    if (!walkin && !forceAdd && !overrideVisibility) {
+      const dup = await checkDuplicate();
+      if (dup) {
+        setDuplicate(dup);
+        return;
+      }
+    }
+
     setLoading(true);
 
     let activeResumeId: string | null = form.resume_id || null;
@@ -134,7 +203,7 @@ export default function WalkinModal({ walkin, resumes: initialResumes, onClose, 
       contact_details: form.contact_details.trim() || null,
       notes: form.notes.trim() || null,
       status: form.status,
-      visibility: form.visibility,
+      visibility: overrideVisibility || form.visibility,
       reminder_enabled: form.reminder_enabled,
       reminder_days_before: form.reminder_days_before,
       email_reminder: form.email_reminder,
@@ -148,10 +217,72 @@ export default function WalkinModal({ walkin, resumes: initialResumes, onClose, 
     } else {
       const { error } = await supabase.from('walkin_drives').insert(payload);
       if (error) { toast('Failed to add walk-in', 'error'); setLoading(false); return; }
-      toast('Walk-in added!', 'success');
+      toast(overrideVisibility === 'private' ? 'Saved to My Walk-ins as Private (duplicate in community)' : 'Walk-in added!', 'success');
     }
     setLoading(false);
     onSaved();
+  }
+
+  if (duplicate) {
+    return (
+      <div className="modal-overlay">
+        <div className="modal-content p-6 max-w-md">
+          <div className="flex items-start gap-3 mb-4">
+            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-[#f0f0ff]">
+                {duplicate.isCommunity ? 'Walk-in Already in Community Feed' : 'Possible Duplicate Walk-in'}
+              </h3>
+              <p className="text-xs sm:text-sm text-[#9898b8] mt-1">
+                {duplicate.isCommunity
+                  ? `This walk-in drive was already shared by ${duplicate.authorName || 'another community member'}.`
+                  : 'This walk-in drive might already be in your walk-ins list:'}
+              </p>
+            </div>
+          </div>
+          <div className="card mb-4 bg-[#12121a] border-[#2a2a3d]">
+            <p className="font-semibold text-[#f0f0ff] text-sm">{duplicate.walkin.company}</p>
+            <p className="text-xs text-[#9898b8] mt-0.5">{duplicate.walkin.job_title}</p>
+            <span className="text-xs text-cyan-300 mt-1 block">📅 Drive Date: {duplicate.walkin.date}</span>
+            {duplicate.isCommunity && (
+              <span className="text-[11px] text-cyan-400 mt-2 block">
+                Shared in Community • Avoids duplicate feed posts
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2 flex-col">
+            {duplicate.isCommunity ? (
+              <>
+                <button
+                  onClick={e => handleSubmit(e as React.FormEvent, true, 'private')}
+                  className="btn-primary justify-center text-xs sm:text-sm py-2"
+                >
+                  Save as Private Walk-in
+                </button>
+                <a href="/job-feed?tab=walkins" className="btn-secondary justify-center text-xs sm:text-sm py-2">
+                  <ExternalLink className="w-3.5 h-3.5" /> View in Community Feed
+                </a>
+              </>
+            ) : (
+              <>
+                <a href="/walkins" className="btn-secondary justify-center text-xs sm:text-sm py-2">
+                  <ExternalLink className="w-3.5 h-3.5" /> View in My Walk-ins
+                </a>
+                <button
+                  onClick={e => handleSubmit(e as React.FormEvent, true)}
+                  className="btn-primary justify-center text-xs sm:text-sm py-2"
+                >
+                  Add Anyway
+                </button>
+              </>
+            )}
+            <button onClick={() => setDuplicate(null)} className="text-xs text-[#9898b8] hover:text-[#f0f0ff] text-center py-1.5 mt-1">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
