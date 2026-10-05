@@ -11,6 +11,7 @@ import ApplicationsPage from './pages/Applications/ApplicationsPage';
 import JobFeedPage from './pages/JobFeed/JobFeedPage';
 import WalkinsPage from './pages/Walkins/WalkinsPage';
 import ResumesPage from './pages/Resumes/ResumesPage';
+import ScoreboardPage from './pages/Scoreboard/ScoreboardPage';
 import AnalyticsPage from './pages/Analytics/AnalyticsPage';
 import FriendsPage from './pages/Friends/FriendsPage';
 import SettingsPage from './pages/Settings/SettingsPage';
@@ -78,6 +79,7 @@ export default function App() {
               <Route path="/job-feed" element={<ProtectedRoute><JobFeedPage /></ProtectedRoute>} />
               <Route path="/walkins" element={<ProtectedRoute><WalkinsPage /></ProtectedRoute>} />
               <Route path="/resumes" element={<ProtectedRoute><ResumesPage /></ProtectedRoute>} />
+              <Route path="/scoreboard" element={<ProtectedRoute><ScoreboardPage /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
               <Route path="/friends" element={<ProtectedRoute><FriendsPage /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />

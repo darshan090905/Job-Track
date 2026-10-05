@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Briefcase, Rss, MapPin, FileText,
-  BarChart2, Users, Settings, LogOut, Menu, X, Sun, Moon
+  BarChart2, Users, Settings, LogOut, Menu, X, Sun, Moon,
+  Trophy
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../context/ThemeContext';
@@ -13,6 +14,7 @@ const navItems = [
   { to: '/job-feed', icon: Rss, label: 'Job Feed' },
   { to: '/walkins', icon: MapPin, label: 'My Walk-ins' },
   { to: '/resumes', icon: FileText, label: 'Resumes' },
+  { to: '/scoreboard', icon: Trophy, label: 'Scoreboard & Ranks' },
   { to: '/analytics', icon: BarChart2, label: 'Analytics' },
   { to: '/friends', icon: Users, label: 'Friends' },
   { to: '/settings', icon: Settings, label: 'Settings' },

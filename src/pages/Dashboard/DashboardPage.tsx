@@ -366,7 +366,7 @@ export default function DashboardPage() {
           <p className="page-subtitle mt-0.5">Here's your job search & community overview</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/job-feed?tab=scoreboard" className="btn-secondary text-xs sm:text-sm py-2 text-amber-300 border-amber-500/30">
+          <Link to="/scoreboard" className="btn-secondary text-xs sm:text-sm py-2 text-amber-300 border-amber-500/30">
             🏆 Scoreboard
           </Link>
           <Link to="/applications?add=true" className="btn-primary text-xs sm:text-sm py-2 px-3 sm:px-4">
@@ -398,7 +398,7 @@ export default function DashboardPage() {
         <Link to="/walkins?add=true" className="btn-secondary text-xs sm:text-sm py-2 flex-shrink-0">
           <MapPin className="w-3.5 h-3.5 text-cyan-400" /> Add Walk-in
         </Link>
-        <Link to="/job-feed?tab=scoreboard" className="btn-secondary text-xs sm:text-sm py-2 flex-shrink-0 text-amber-300 border-amber-500/30">
+        <Link to="/scoreboard" className="btn-secondary text-xs sm:text-sm py-2 flex-shrink-0 text-amber-300 border-amber-500/30">
           🏆 Community Leaderboard
         </Link>
         <Link to="/resumes" className="btn-secondary text-xs sm:text-sm py-2 flex-shrink-0">
@@ -612,7 +612,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <Link
-                to="/job-feed?tab=scoreboard"
+                to="/scoreboard"
                 className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5"
               >
                 Full Board <ChevronRight className="w-3 h-3" />
@@ -714,7 +714,7 @@ export default function DashboardPage() {
             {/* Quick Share to Earn Points & View Scoreboard */}
             <div className="flex flex-col gap-2 pt-2 border-t border-[#2a2a3d]">
               <Link
-                to="/job-feed?tab=scoreboard"
+                to="/scoreboard"
                 className="btn-primary text-xs py-2 w-full justify-center shadow-md shadow-indigo-600/20"
               >
                 🏆 Open Full Leaderboard & Badges
